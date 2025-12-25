@@ -1,7 +1,11 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { RubricConfig, GradingResult } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+if (!apiKey) {
+  console.error("API Key is missing. Please check VITE_GEMINI_API_KEY or GEMINI_API_KEY in .env");
+}
+const ai = new GoogleGenAI({ apiKey: apiKey });
 
 // Cache en memoria para almacenar resultados previos
 // La clave será un hash de la imagen + la configuración de la rúbrica
@@ -71,11 +75,11 @@ export const gradeSubmission = async (
     }
 
     // Usamos gemini-2.5-flash por su excelente capacidad de visión y razonamiento
-    const modelId = "gemini-2.5-flash"; 
+    const modelId = "gemini-2.5-flash";
 
     // Construir los contenidos de la solicitud
     const contentParts: any[] = [];
-    
+
     // Parte 1: El examen del estudiante (Siempre presente)
     contentParts.push({
       inlineData: {
@@ -87,12 +91,12 @@ export const gradeSubmission = async (
     // Parte 2: Archivo de Rúbrica (Opcional)
     // Si existe, lo agregamos como contexto adicional.
     if (rubric.rubricFileData && rubric.rubricFileMimeType) {
-        contentParts.push({
-            inlineData: {
-                mimeType: rubric.rubricFileMimeType,
-                data: rubric.rubricFileData
-            }
-        });
+      contentParts.push({
+        inlineData: {
+          mimeType: rubric.rubricFileMimeType,
+          data: rubric.rubricFileData
+        }
+      });
     }
 
     const promptText = `
@@ -140,17 +144,17 @@ export const gradeSubmission = async (
     });
 
     let jsonText = response.text || "{}";
-    
+
     // Limpieza: Eliminar bloques de código markdown si están presentes
     if (jsonText.startsWith("```")) {
       jsonText = jsonText.replace(/^```(json)?\n/, "").replace(/\n```$/, "");
     }
 
     const result = JSON.parse(jsonText) as GradingResult;
-    
+
     // Asegurar que el maxScore coincida con la configuración
-    result.maxScore = rubric.maxScore; 
-    
+    result.maxScore = rubric.maxScore;
+
     // Guardar en caché para futuras consultas idénticas
     resultCache.set(cacheKey, result);
 
