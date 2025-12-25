@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import RubricPanel from './components/RubricPanel';
 import StudentUpload from './components/StudentUpload';
 import SubmissionItem from './components/SubmissionItem';
@@ -8,9 +8,7 @@ import { RubricConfig, StudentSubmission, GradingStatus } from './types';
 import { gradeSubmission } from './services/geminiService';
 import { downloadCSV } from './utils';
 import { BarChart2, Edit3 } from 'lucide-react';
-
-// Helper to generate IDs
-const generateId = () => Math.random().toString(36).substr(2, 9);
+import { subscribeToSubmissions, createSubmission, deleteSubmission, updateSubmissionResult } from './services/db';
 
 export default function App() {
   const [rubric, setRubric] = useState<RubricConfig>({
@@ -25,22 +23,37 @@ export default function App() {
   const [isGrading, setIsGrading] = useState(false);
   const [currentView, setCurrentView] = useState<'grading' | 'dashboard'>('grading');
 
-  // Add new files to the list
-  const handleUpload = useCallback((files: { name: string; data: string; mimeType: string }[]) => {
-    const newSubmissions: StudentSubmission[] = files.map(f => ({
-      id: generateId(),
-      fileName: f.name,
-      fileData: f.data,
-      mimeType: f.mimeType,
-      status: GradingStatus.PENDING,
-    }));
-    setSubmissions(prev => [...prev, ...newSubmissions]);
+  // Real-time sync with Firestore
+  useEffect(() => {
+    // Import dynamically to avoid circular dependencies if any, though here it's fine direct
+    const unsubscribe = subscribeToSubmissions((data) => {
+      setSubmissions(data);
+    });
+    return () => unsubscribe();
   }, []);
 
-  // Remove a submission
-  const handleRemove = (id: string) => {
-    setSubmissions(prev => prev.filter(s => s.id !== id));
-    if (selectedSubmissionId === id) setSelectedSubmissionId(null);
+  // Add new files to the list -> Upload to Firebase
+  const handleUpload = useCallback(async (files: { name: string; data: string; mimeType: string }[]) => {
+    // Process uploads sequentially
+    for (const f of files) {
+      try {
+        await createSubmission({ fileName: f.name, mimeType: f.mimeType }, f.data);
+      } catch (error) {
+        console.error("Upload failed", error);
+        alert(`Error subiendo ${f.name}`);
+      }
+    }
+  }, []);
+
+  // Remove a submission -> Delete from Firebase
+  const handleRemove = async (id: string) => {
+    const sub = submissions.find(s => s.id === id);
+    if (!sub) return;
+
+    if (confirm("¿Estás seguro de eliminar este examen?")) {
+      await deleteSubmission(id); // Only ID needed now, fileData is embedded
+      if (selectedSubmissionId === id) setSelectedSubmissionId(null);
+    }
   };
 
   // Trigger Grading Process
@@ -55,31 +68,22 @@ export default function App() {
 
     setIsGrading(true);
 
-    // We process sequentially to avoid hitting rate limits too hard
+    // We process sequentially 
     const pendingSubmissions = submissions.filter(s => s.status === GradingStatus.PENDING || s.status === GradingStatus.ERROR);
-
-    // Update status to processing for visual feedback
-    setSubmissions(prev => prev.map(s =>
-      pendingSubmissions.find(p => p.id === s.id)
-        ? { ...s, status: GradingStatus.PROCESSING }
-        : s
-    ));
 
     for (const sub of pendingSubmissions) {
       try {
+        // 1. Update status to processing
+        await updateSubmissionResult(sub.id, null, GradingStatus.PROCESSING);
+
+        // 2. Grade directly using fileData (from Firestore doc)
         const result = await gradeSubmission(sub.fileData, sub.mimeType, rubric);
 
-        setSubmissions(prev => prev.map(s =>
-          s.id === sub.id
-            ? { ...s, status: GradingStatus.COMPLETED, result }
-            : s
-        ));
+        // 3. Save result
+        await updateSubmissionResult(sub.id, result, GradingStatus.COMPLETED);
       } catch (error) {
-        setSubmissions(prev => prev.map(s =>
-          s.id === sub.id
-            ? { ...s, status: GradingStatus.ERROR, error: (error as Error).message }
-            : s
-        ));
+        console.error(`Error grading ${sub.fileName}:`, error);
+        await updateSubmissionResult(sub.id, { error: (error as Error).message }, GradingStatus.ERROR);
       }
     }
 
@@ -132,8 +136,8 @@ export default function App() {
               <button
                 onClick={() => setCurrentView('grading')}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${currentView === 'grading'
-                    ? 'bg-white text-indigo-600 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
                   }`}
               >
                 <Edit3 size={16} />
@@ -142,8 +146,8 @@ export default function App() {
               <button
                 onClick={() => setCurrentView('dashboard')}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${currentView === 'dashboard'
-                    ? 'bg-white text-indigo-600 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
                   }`}
               >
                 <BarChart2 size={16} />
