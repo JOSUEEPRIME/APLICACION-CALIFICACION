@@ -249,7 +249,7 @@ export default function App() {
           </div>
         ) : (
           <div className="max-w-7xl mx-auto">
-            <Dashboard />
+            <Dashboard submissions={submissions} />
           </div>
         )}
       </main>

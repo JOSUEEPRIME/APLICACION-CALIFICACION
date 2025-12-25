@@ -7,7 +7,7 @@ interface DashboardProps {
   submissions: StudentSubmission[];
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ submissions }) => {
+const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
   // Transformar los datos de las entregas al formato plano que usa el dashboard
   const data = useMemo(() => {
     return submissions.map(s => ({
@@ -235,9 +235,9 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions }) => {
                     <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-r shadow-sm ${index === 0 ? 'from-purple-600 to-indigo-600' :
-                            index === 1 ? 'from-indigo-500 to-blue-500' :
-                              index === 2 ? 'from-blue-500 to-cyan-500' :
-                                'from-slate-400 to-slate-500 opacity-60'
+                          index === 1 ? 'from-indigo-500 to-blue-500' :
+                            index === 2 ? 'from-blue-500 to-cyan-500' :
+                              'from-slate-400 to-slate-500 opacity-60'
                           }`}
                         style={{ width: `${(item.value / wordStats[0].value) * 100}%` }}
                       ></div>
