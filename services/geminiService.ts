@@ -34,7 +34,7 @@ const rotateKey = () => {
   if (apiKeys.length <= 1) return; // No tiene sentido rotar si solo hay una clave
 
   currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
-  console.log(`⚠️ Quota exceeded. Rotating to API Key index: ${currentKeyIndex}`);
+  console.log(`⚠️ Quota exceeded or Key Invalid. Rotating to API Key index: ${currentKeyIndex}`);
 
   try {
     localStorage.setItem('gemini_key_index', currentKeyIndex.toString());
@@ -113,13 +113,20 @@ const generateContentWithRetry = async (
       errorMessage.includes('RESOURCE_EXHAUSTED') ||
       errorMessage.toLowerCase().includes('quota');
 
-    if (isQuotaError && attemptsLeft > 1) {
+    // Detectar errores de permiso/leaked key (403)
+    const isPermissionError =
+      errorMessage.includes('403') ||
+      errorMessage.includes('PERMISSION_DENIED') ||
+      errorMessage.toLowerCase().includes('leaked');
+
+    if ((isQuotaError || isPermissionError) && attemptsLeft > 1) {
+      console.warn(`API Error (${isQuotaError ? 'Quota' : 'Permission/Leaked'}). Rotating key...`);
       rotateKey();
       // Reintentar recursivamente
       return generateContentWithRetry(modelId, contentParts, config, attemptsLeft - 1);
     }
 
-    // Si no es un error de cuota o ya no quedan intentos, lanzamos el error
+    // Si no es un error de recuperación o ya no quedan intentos
     throw error;
   }
 };
