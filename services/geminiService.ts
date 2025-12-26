@@ -1,24 +1,59 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { RubricConfig, GradingResult } from "../types";
 
-const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-if (!apiKey) {
-  console.error("API Key is missing. Please check VITE_GEMINI_API_KEY or GEMINI_API_KEY in .env");
+// 1. Carga de Claves de API con soporte para múltiples claves
+const envKeys = import.meta.env.VITE_GEMINI_API_KEYS || process.env.VITE_GEMINI_API_KEYS || '';
+const singleKey = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+
+// Combinamos las claves de la lista y la clave individual si existen
+let apiKeys = envKeys.split(',').map((k: string) => k.trim()).filter(Boolean);
+if (apiKeys.length === 0 && singleKey) {
+  apiKeys = [singleKey];
 }
-const ai = new GoogleGenAI({ apiKey: apiKey });
+
+if (apiKeys.length === 0) {
+  console.error("API Key is missing. Please check VITE_GEMINI_API_KEYS or GEMINI_API_KEY in .env");
+}
+
+// 2. Gestión del Estado (Índice Actual)
+let currentKeyIndex = 0;
+try {
+  const savedIndex = localStorage.getItem('gemini_key_index');
+  if (savedIndex) {
+    currentKeyIndex = parseInt(savedIndex, 10) % apiKeys.length;
+  }
+} catch (e) {
+  console.warn("localStorage not available, starting with index 0");
+}
+
+// 3. Inicialización del Cliente Cliente de IA
+let ai = new GoogleGenAI({ apiKey: apiKeys[currentKeyIndex] });
+
+// 4. Función de Rotación
+const rotateKey = () => {
+  if (apiKeys.length <= 1) return; // No tiene sentido rotar si solo hay una clave
+
+  currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
+  console.log(`⚠️ Quota exceeded. Rotating to API Key index: ${currentKeyIndex}`);
+
+  try {
+    localStorage.setItem('gemini_key_index', currentKeyIndex.toString());
+  } catch (e) { }
+
+  // Re-inicializamos el cliente con la nueva clave
+  ai = new GoogleGenAI({ apiKey: apiKeys[currentKeyIndex] });
+};
 
 // Cache en memoria para almacenar resultados previos
-// La clave será un hash de la imagen + la configuración de la rúbrica
 const resultCache: Map<string, GradingResult> = new Map();
 
-// Función simple para generar un hash de un string largo (como el base64)
 const getHashCode = (str: string): string => {
   let hash = 0;
   if (str.length === 0) return hash.toString();
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash & hash;
   }
   return hash.toString();
 };
@@ -55,32 +90,59 @@ const gradingSchema: Schema = {
   required: ["studentName", "transcription", "score", "feedback", "areasForImprovement"],
 };
 
+// Función auxiliar para generar contenido con reintentos y rotación de claves
+const generateContentWithRetry = async (
+  modelId: string,
+  contentParts: any[],
+  config: any,
+  attemptsLeft: number = apiKeys.length
+): Promise<any> => {
+  try {
+    return await ai.models.generateContent({
+      model: modelId,
+      contents: {
+        parts: contentParts,
+      },
+      config: config,
+    });
+  } catch (error: any) {
+    const errorMessage = error.message || error.toString();
+    // Detectar errores de cuota (429, resource exhausted, quota)
+    const isQuotaError =
+      errorMessage.includes('429') ||
+      errorMessage.includes('RESOURCE_EXHAUSTED') ||
+      errorMessage.toLowerCase().includes('quota');
+
+    if (isQuotaError && attemptsLeft > 1) {
+      rotateKey();
+      // Reintentar recursivamente
+      return generateContentWithRetry(modelId, contentParts, config, attemptsLeft - 1);
+    }
+
+    // Si no es un error de cuota o ya no quedan intentos, lanzamos el error
+    throw error;
+  }
+};
+
 export const gradeSubmission = async (
   base64Image: string,
   mimeType: string,
   rubric: RubricConfig
 ): Promise<GradingResult> => {
   try {
-    // 1. Generar Cache Key única
-    // Combinamos el hash de la imagen con la configuración de la rúbrica.
-    // JSON.stringify(rubric) ahora incluye rubricFileData si existe, asegurando congruencia.
     const imageHash = getHashCode(base64Image);
     const rubricKey = JSON.stringify(rubric);
     const cacheKey = `${imageHash}::${rubricKey}`;
 
     if (resultCache.has(cacheKey)) {
       console.log("Recuperando resultado desde caché (congruencia garantizada)");
-      // Devolvemos una copia para evitar mutaciones accidentales
       return JSON.parse(JSON.stringify(resultCache.get(cacheKey)));
     }
 
-    // Usamos gemini-2.5-flash por su excelente capacidad de visión y razonamiento
     const modelId = "gemini-2.5-flash";
 
-    // Construir los contenidos de la solicitud
     const contentParts: any[] = [];
 
-    // Parte 1: El examen del estudiante (Siempre presente)
     contentParts.push({
       inlineData: {
         mimeType: mimeType,
@@ -88,8 +150,6 @@ export const gradeSubmission = async (
       },
     });
 
-    // Parte 2: Archivo de Rúbrica (Opcional)
-    // Si existe, lo agregamos como contexto adicional.
     if (rubric.rubricFileData && rubric.rubricFileMimeType) {
       contentParts.push({
         inlineData: {
@@ -131,31 +191,22 @@ export const gradeSubmission = async (
 
     contentParts.push({ text: promptText });
 
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: {
-        parts: contentParts,
-      },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: gradingSchema,
-        temperature: 0.0, // ESTABLECIDO EN 0 PARA MÁXIMA DETERMINACIÓN Y CONGRUENCIA
-      },
+    // USAMOS LA NUEVA FUNCIÓN CON RETRY
+    const response = await generateContentWithRetry(modelId, contentParts, {
+      responseMimeType: "application/json",
+      responseSchema: gradingSchema,
+      temperature: 0.0,
     });
 
     let jsonText = response.text || "{}";
 
-    // Limpieza: Eliminar bloques de código markdown si están presentes
     if (jsonText.startsWith("```")) {
       jsonText = jsonText.replace(/^```(json)?\n/, "").replace(/\n```$/, "");
     }
 
     const result = JSON.parse(jsonText) as GradingResult;
-
-    // Asegurar que el maxScore coincida con la configuración
     result.maxScore = rubric.maxScore;
 
-    // Guardar en caché para futuras consultas idénticas
     resultCache.set(cacheKey, result);
 
     return result;

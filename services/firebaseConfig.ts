@@ -3,9 +3,8 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, CollectionReference, collection, DocumentData } from "firebase/firestore";
 
 // Configuración de Firebase basada en la información inferida del proyecto
-// En producción, estas variables deberían venir de import.meta.env
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDUUBbhuGi4-Ggt5vYzdM053i4CuFK0I1k",
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: "aplicacion-calificacion.firebaseapp.com",
     projectId: "aplicacion-calificacion",
     storageBucket: "aplicacion-calificacion.firebasestorage.app", // Estructura estándar
