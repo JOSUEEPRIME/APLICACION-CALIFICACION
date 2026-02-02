@@ -1,59 +1,251 @@
-¡De una, cuenta con eso! Para que el sistema no solo "lea" el nombre, sino que **entienda** quién es (aunque el estudiante tenga mala letra o el OCR falle por una letra), necesitamos un algoritmo de coincidencia difusa (Fuzzy Matching).
+¡Te entiendo perfectamente, bro! Tienes toda la razón. El algoritmo actual de Levenshtein es muy "rígido" porque compara la longitud total. Si el nombre en la base de datos es muy largo ("Diana Carolina Torres Mendoza") y en la hoja solo dice "Diana Torres", el algoritmo cree que son muy distintos por la diferencia de longitud.
 
-Aquí tienes el prompt **definitivo y detallado** para Antigravity. Este prompt le instruye exactamente cómo implementar la lógica de "Mejor Parecido" (Levenshtein) y la nueva vista en cuadrícula.
+Para que se ponga "pilas" y funcione como tú quieres (que detecte coincidencias parciales y te deje editar), necesitamos hacer **dos cambios clave**:
 
-Copia y pega esto:
+1. **Mejorar el Algoritmo (`utils.ts`):** Cambiar a una lógica de **"Coincidencia de Palabras Clave"**. Si las palabras "Diana" y "Torres" aparecen en el nombre completo, ¡es ella!
+2. **Interfaz de Selección Manual (`SubmissionItem.tsx`):** Poner un menú desplegable (dropdown) para que si el sistema falla, tú puedas decir "No, este examen es de Fulanito".
 
----
-
-**Rol:** Eres un Ingeniero de Software Senior experto en Algoritmos y React/UX.
-
-**Objetivo:** Implementar un sistema de "Vinculación Inteligente de Estudiantes" y rediseñar la gestión de alumnos.
-
-**Contexto:**
-Actualmente, la IA devuelve un nombre crudo (OCR). Necesitamos que el sistema tome ese nombre, lo compare con la base de datos del curso y asigne la nota al estudiante correcto automáticamente, incluso si hay pequeños errores ortográficos.
-
-**Instrucciones Técnicas (Paso a Paso):**
-
-1. **El "Cerebro" de Coincidencia (utils.ts):**
-* Implementa una función `getLevenshteinDistance(a, b)` para calcular la diferencia entre strings.
-* Crea la función principal `findBestStudentMatch(ocrName, studentList, threshold = 0.65)`.
-* Debe normalizar los textos (minúsculas, sin tildes) antes de comparar.
-* Debe devolver el objeto `Student` con mayor similitud si supera el umbral (threshold). Si no, devuelve `null`.
-
-
-
-
-2. **Integración en el Flujo de Calificación (App.tsx):**
-* Ubica la función `startGrading`.
-* Justo después de recibir el `result` de `geminiService`, invoca `findBestStudentMatch` usando `result.studentName` y la lista actual de estudiantes (`students` state).
-* Si encuentra match, inyecta el `studentId` y el nombre normalizado en el resultado antes de guardarlo en Firebase (`updateSubmissionResult`).
-
-
-3. **Interfaz de Estudiantes "Grid View" (StudentManager.tsx):**
-* **Transformación Visual:** Elimina la lista plana (`ul/li`). Reemplázala con un **Grid CSS** (`grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4`).
-* **Student Card:** Crea un componente de tarjeta para cada alumno que muestre:
-* **Avatar:** Un círculo con las iniciales del estudiante y un color de fondo dinámico.
-* **Datos:** Nombre completo en negrita (grande).
-* **Stats:** Un pequeño badge o texto que diga "Promedio: X" (calculado en tiempo real basado en sus entregas vinculadas).
-* **Acciones:** Botón discreto para editar/eliminar.
-
-
-
-
-4. **Confirmación Visual (SubmissionItem.tsx):**
-* En la tarjeta de resultados de calificación, si la IA vinculó al estudiante automáticamente, muestra un indicador verde: ✅ *Vinculado con: [Nombre Real]*
-* Si no hubo coincidencia, muestra una alerta amarilla: ⚠️ *Estudiante no identificado* (y permite asignación manual).
-
-
-
-**Nota de Seguridad:**
-Asegúrate de manejar los casos donde `studentList` esté vacía para evitar errores en el loop de calificación.
+Aquí tienes el código listo para copiar y pegar.
 
 ---
 
-### ¿Por qué funcionará esto?
+### Paso 1: Actualizar la Inteligencia (`utils.ts`)
 
-1. **Algoritmo Levenshtein:** Es el estándar de oro para esto. Si el estudiante escribe "Juan Perz" y en la lista está "Juan Pérez", el sistema sabrá que es él (similitud > 80%).
-2. **Normalización:** Al pedirle que ignore mayúsculas y tildes, evitas que "Gomez" y "Gómez" sean tratados como personas distintas.
-3. **Feedback Visual:** La cuadrícula (Grid) te permitirá ver de un vistazo quién va bien y quién va mal, en lugar de leer una lista aburrida.
+Reemplaza tu función `findBestMatch` actual por esta nueva versión **híbrida**. Esta versión divide los nombres en palabras y busca coincidencias, ignorando si faltan los segundos nombres.
+
+```typescript
+// utils.ts
+
+// ... (mantén fileToBase64, downloadCSV y levenshteinDistance igual) ...
+
+export const findBestMatch = (ocrName: string, studentList: { id: string; name: string }[]): string | undefined => {
+  if (!ocrName || studentList.length === 0) return undefined;
+
+  const normalizedOcr = ocrName.toLowerCase().trim();
+  // Dividimos lo que leyó la IA en palabras (tokens)
+  const ocrTokens = normalizedOcr.split(/\s+/).filter(t => t.length > 2); // Ignoramos palabras de 1-2 letras
+
+  let bestMatchId: string | undefined = undefined;
+  let maxScore = 0;
+
+  for (const student of studentList) {
+    const studentNameNorm = student.name.toLowerCase();
+    const studentTokens = studentNameNorm.split(/\s+/);
+
+    let matches = 0;
+    
+    // Verificamos cuántas palabras del OCR coinciden con el nombre del estudiante
+    ocrTokens.forEach(ocrToken => {
+      // Buscamos coincidencia exacta o muy cercana (para typos pequeños)
+      const tokenMatch = studentTokens.some(studentToken => {
+        if (studentToken.includes(ocrToken)) return true; // Ejemplo: "Torres" está en "Torres"
+        if (levenshteinDistance(ocrToken, studentToken) <= 1) return true; // Ejemplo: "Tores" vs "Torres"
+        return false;
+      });
+      
+      if (tokenMatch) matches++;
+    });
+
+    // Calculamos un puntaje basado en cuántas palabras coincidieron
+    // Si OCR dice "Diana Torres" (2 palabras) y encontramos las 2 en el nombre completo, el score es alto.
+    const score = matches / ocrTokens.length;
+
+    // El umbral es 0.5: Al menos la mitad de las palabras deben coincidir.
+    if (score > 0.5 && score > maxScore) {
+      maxScore = score;
+      bestMatchId = student.id;
+    }
+  }
+
+  return bestMatchId;
+};
+
+```
+
+---
+
+### Paso 2: Agregar el Selector Manual (`SubmissionItem.tsx`)
+
+Aquí vamos a agregar la lista de estudiantes al componente para que puedas corregir manualmente si la IA se equivoca.
+
+Modifica tu archivo `components/SubmissionItem.tsx` así:
+
+```tsx
+import React from 'react';
+import { GradingStatus, StudentSubmission, Student } from '../types'; // Asegúrate de importar Student
+import { UserCheck, AlertCircle } from 'lucide-react'; // Iconos opcionales si usas lucide, si no, usa texto
+
+interface SubmissionItemProps {
+  submission: StudentSubmission;
+  students: Student[]; // <--- NUEVO: Recibimos la lista completa
+  onRemove: (id: string) => void;
+  onClick: (id: string) => void;
+  onManualAssign: (submissionId: string, studentId: string) => void; // <--- NUEVO: Función para cambiar
+}
+
+const SubmissionItem: React.FC<SubmissionItemProps> = ({ 
+  submission, 
+  students, 
+  onRemove, 
+  onClick,
+  onManualAssign 
+}) => {
+  
+  const getStatusColor = (status: GradingStatus) => {
+    // ... (Tu código de colores existente) ...
+    switch (status) {
+      case GradingStatus.COMPLETED: return 'bg-green-100 text-green-800 border-green-200';
+      case GradingStatus.PROCESSING: return 'bg-blue-100 text-blue-800 border-blue-200';
+      case GradingStatus.ERROR: return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const handleStudentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.stopPropagation(); // Evita que se abra el modal al hacer click en el select
+    onManualAssign(submission.id, e.target.value);
+  };
+
+  return (
+    <div 
+      className={`bg-white rounded-lg border p-4 flex flex-col sm:flex-row items-center justify-between hover:shadow-md transition-shadow cursor-pointer ${submission.matchedStudentId ? 'border-green-200 ring-1 ring-green-100' : 'border-gray-200'}`}
+      onClick={() => onClick(submission.id)}
+    >
+      <div className="flex items-center gap-4 w-full sm:w-auto">
+        {/* Thumbnail Image */}
+        <div className="h-16 w-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
+            <img 
+                src={`data:${submission.mimeType};base64,${submission.fileData}`} 
+                alt="Examen" 
+                className="w-full h-full object-cover"
+            />
+        </div>
+
+        <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+               {/* SELECTOR DE ESTUDIANTE INTELIGENTE */}
+               {submission.status === GradingStatus.COMPLETED || submission.status === GradingStatus.PROCESSING ? (
+                 <div className="relative" onClick={(e) => e.stopPropagation()}>
+                    <select 
+                      className={`block w-full max-w-[250px] pl-2 pr-8 py-1 text-sm font-semibold rounded-md border-0 ring-1 ring-inset focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 ${
+                        submission.matchedStudentId ? 'text-green-700 ring-green-200 bg-green-50' : 'text-gray-900 ring-gray-300'
+                      }`}
+                      value={submission.matchedStudentId || ""}
+                      onChange={handleStudentChange}
+                    >
+                      <option value="" disabled>-- Identificar Estudiante --</option>
+                      {students.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    {/* Feedback visual de OCR */}
+                    {!submission.matchedStudentId && submission.result?.studentName && (
+                      <p className="text-xs text-orange-500 mt-1 flex items-center gap-1">
+                        <span>⚠️ OCR leyó: "{submission.result.studentName}"</span>
+                      </p>
+                    )}
+                 </div>
+               ) : (
+                 <p className="font-medium text-gray-400 italic">Esperando calificación...</p>
+               )}
+            </div>
+            
+            <div className="flex gap-2">
+               <span className="text-xs text-gray-400">{submission.fileName}</span>
+            </div>
+        </div>
+      </div>
+
+      {/* Score & Actions */}
+      <div className="flex items-center gap-6 mt-4 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
+        {submission.result && (
+            <div className="text-right">
+                <span className={`block text-2xl font-bold ${submission.result.score >= 7 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {submission.result.score}
+                    <span className="text-sm text-gray-400 font-normal">/{submission.result.maxScore}</span>
+                </span>
+                <span className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Nota Final</span>
+            </div>
+        )}
+        
+        <button 
+            onClick={(e) => { e.stopPropagation(); onRemove(submission.id); }}
+            className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-all"
+            title="Eliminar examen"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default SubmissionItem;
+
+```
+
+---
+
+### Paso 3: Conectar todo en `App.tsx`
+
+Finalmente, necesitamos pasarle la lista de estudiantes a `SubmissionItem` y manejar la actualización manual.
+
+1. Busca donde renderizas `<SubmissionItem />` (dentro de `App.tsx`).
+2. Agrega la lógica `handleManualAssign`.
+3. Pasa las props nuevas.
+
+```tsx
+// App.tsx
+
+// ... imports ...
+
+export default function App() {
+  // ... estados ...
+
+  // Función para manejar el cambio manual desde el dropdown
+  const handleManualAssign = async (submissionId: string, studentId: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    // Actualizamos localmente primero para sensación inmediata
+    setSubmissions(prev => prev.map(sub => 
+      sub.id === submissionId 
+        ? { ...sub, matchedStudentId: studentId, result: sub.result ? { ...sub.result, studentName: student.name } : undefined }
+        : sub
+    ));
+
+    // Guardamos en Base de Datos (Firebase)
+    // Nota: Necesitas asegurarte de que updateSubmissionResult acepte el 4to argumento (matchedStudentId)
+    // Si no lo tienes, modifica db.ts o pásalo como parte del objeto result.
+    await updateSubmissionResult(submissionId, { studentName: student.name }, GradingStatus.COMPLETED, studentId);
+  };
+
+  // ... (resto del código) ...
+
+  // EN EL RENDER (Dentro del map de submissions):
+  {submissions.map(sub => (
+    <SubmissionItem
+      key={sub.id}
+      submission={sub}
+      students={students} // <--- ¡IMPORTANTE! Pasamos la lista
+      onRemove={handleRemove}
+      onClick={setSelectedSubmissionId}
+      onManualAssign={handleManualAssign} // <--- ¡IMPORTANTE! Pasamos la función
+    />
+  ))}
+  
+  // ...
+}
+
+```
+
+### ¿Qué logramos con esto?
+
+1. **Inteligencia:** Si la hoja dice "Diana Torres", la función `utils` ve que "Diana" y "Torres" están en "Diana Carolina Torres Mendoza". ¡Match automático!
+2. **Control Total:** Si la IA falla y pone "Desconocido" o se equivoca, verás un menú desplegable con todos los alumnos del curso. Solo seleccionas al correcto y listo, la nota se asigna a esa persona.
+
+¡Dale plomo a esos cambios y verás cómo mejora la detección!

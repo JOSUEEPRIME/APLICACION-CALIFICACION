@@ -134,7 +134,23 @@ export default function App() {
     setIsGrading(false);
   };
 
-  // Export Logic
+  // Handle manual student assignment
+  const handleManualAssign = async (submissionId: string, studentId: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    // Update local state instantly
+    setSubmissions(prev => prev.map(sub =>
+      sub.id === submissionId
+        ? { ...sub, matchedStudentId: studentId, result: sub.result ? { ...sub.result, studentName: student.name } : undefined }
+        : sub
+    ));
+
+    // Save to DB
+    // Assuming updateSubmissionResult handles matchedStudentId as 4th arg
+    await updateSubmissionResult(submissionId, { studentName: student.name }, GradingStatus.COMPLETED, studentId);
+  };
+
   const handleExport = () => {
     const headers = ["ID", "Nombre de Archivo", "Estudiante", "Puntaje", "Puntaje Max", "Retroalimentación", "Transcripción"];
     const rows = submissions.map(s => [
@@ -327,8 +343,10 @@ export default function App() {
                         <SubmissionItem
                           key={sub.id}
                           submission={sub}
+                          students={students}
                           onRemove={handleRemove}
                           onClick={setSelectedSubmissionId}
+                          onManualAssign={handleManualAssign}
                         />
                       ))}
                     </div>

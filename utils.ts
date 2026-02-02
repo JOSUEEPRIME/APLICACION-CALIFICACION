@@ -47,28 +47,42 @@ export const getLevenshteinDistance = (a: string, b: string): number => {
   return matrix[a.length][b.length];
 };
 
-export const findBestMatch = (ocrName: string, studentList: { id: string; name: string }[], thresholdRatio: number = 0.35): string | undefined => {
+export const findBestMatch = (ocrName: string, studentList: { id: string; name: string }[]): string | undefined => {
   if (!ocrName || studentList.length === 0) return undefined;
 
-  let bestMatchId: string | undefined = undefined;
-  let minDistance = Infinity;
+  const normalizedOcr = ocrName.toLowerCase().trim();
+  // Dividimos lo que leyó la IA en palabras (tokens)
+  const ocrTokens = normalizedOcr.split(/\s+/).filter(t => t.length > 2); // Ignoramos palabras de 1-2 letras
 
-  const normalizedOcrName = ocrName.toLowerCase().trim()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remove accents
+  let bestMatchId: string | undefined = undefined;
+  let maxScore = 0;
 
   for (const student of studentList) {
-    const normalizedStudentName = student.name.toLowerCase().trim()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remove accents
+    const studentNameNorm = student.name.toLowerCase();
+    const studentTokens = studentNameNorm.split(/\s+/);
 
-    const distance = getLevenshteinDistance(normalizedOcrName, normalizedStudentName);
-    const maxLen = Math.max(normalizedOcrName.length, normalizedStudentName.length);
+    let matches = 0;
 
-    // Check if distance is within acceptable threshold
-    if (distance <= maxLen * thresholdRatio) {
-      if (distance < minDistance) {
-        minDistance = distance;
-        bestMatchId = student.id;
-      }
+    // Verificamos cuántas palabras del OCR coinciden con el nombre del estudiante
+    ocrTokens.forEach(ocrToken => {
+      // Buscamos coincidencia exacta o muy cercana (para typos pequeños)
+      const tokenMatch = studentTokens.some(studentToken => {
+        if (studentToken.includes(ocrToken)) return true; // Ejemplo: "Torres" está en "Torres"
+        if (getLevenshteinDistance(ocrToken, studentToken) <= 1) return true; // Ejemplo: "Tores" vs "Torres"
+        return false;
+      });
+
+      if (tokenMatch) matches++;
+    });
+
+    // Calculamos un puntaje basado en cuántas palabras coincidieron
+    // Si OCR dice "Diana Torres" (2 palabras) y encontramos las 2 en el nombre completo, el score es alto.
+    const score = ocrTokens.length > 0 ? matches / ocrTokens.length : 0;
+
+    // El umbral es 0.5: Al menos la mitad de las palabras deben coincidir.
+    if (score > 0.5 && score > maxScore) {
+      maxScore = score;
+      bestMatchId = student.id;
     }
   }
 
