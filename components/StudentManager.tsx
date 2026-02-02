@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Student } from '../types';
 import { subscribeToStudents, addStudentsToCourse, deleteStudent, updateStudent } from '../services/db';
 import { Users, Upload, X, MoreVertical, Trash2, Edit2, CheckCircle, AlertCircle } from 'lucide-react';
+import StudentReportModal from './StudentReportModal';
 
 interface StudentManagerProps {
     courseId: string;
@@ -9,7 +10,15 @@ interface StudentManagerProps {
     onClose: () => void;
 }
 
-const StudentCard: React.FC<{ student: Student; onDelete: (id: string) => void; onUpdate: (id: string, name: string) => void }> = ({ student, onDelete, onUpdate }) => {
+interface StudentCardProps {
+    student: Student;
+    index: number;
+    onDelete: (id: string) => void;
+    onUpdate: (id: string, name: string) => void;
+    onClick: (student: Student) => void;
+}
+
+const StudentCard: React.FC<StudentCardProps> = ({ student, index, onDelete, onUpdate, onClick }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [newName, setNewName] = useState(student.name);
 
@@ -31,7 +40,9 @@ const StudentCard: React.FC<{ student: Student; onDelete: (id: string) => void; 
         return colors[Math.abs(hash) % colors.length];
     };
 
-    const handleSave = () => {
+    const handleSave = (e: React.FormEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (newName.trim()) {
             onUpdate(student.id, newName);
             setIsEditing(false);
@@ -44,16 +55,24 @@ const StudentCard: React.FC<{ student: Student; onDelete: (id: string) => void; 
     };
 
     return (
-        <div className={`bg-white rounded-xl shadow-sm border ${getBorderColor()} p-4 transition-all hover:shadow-md flex flex-col justify-between`}>
-            <div className="flex justify-between items-start mb-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getRandomColor(student.name)}`}>
+        <div
+            onClick={() => !isEditing && onClick(student)}
+            className={`cursor-pointer bg-white rounded-xl shadow-sm border ${getBorderColor()} p-4 transition-all hover:shadow-md flex flex-col justify-between relative group/card`}
+        >
+            {/* Index Badge */}
+            <div className="absolute top-2 left-2 w-6 h-6 bg-gray-50 text-gray-400 text-xs font-mono rounded flex items-center justify-center pointer-events-none">
+                {index}
+            </div>
+
+            <div className="flex justify-between items-start mb-3 pl-6">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getRandomColor(student.name)} shrink-0`}>
                     {getInitials(student.name)}
                 </div>
-                <div className="relative group">
-                    <button className="text-gray-400 hover:text-gray-600">
+                <div className="relative group ml-auto" onClick={e => e.stopPropagation()}>
+                    <button className="text-gray-400 hover:text-gray-600 p-1">
                         <MoreVertical size={18} />
                     </button>
-                    {/* Context Menu (Simple hover/focus implementation for speed, can be improved) */}
+                    {/* Context Menu */}
                     <div className="absolute right-0 top-6 w-32 bg-white border border-gray-100 shadow-lg rounded-lg hidden group-hover:block z-10 p-1">
                         <button onClick={() => setIsEditing(true)} className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2">
                             <Edit2 size={12} /> Editar
@@ -66,13 +85,14 @@ const StudentCard: React.FC<{ student: Student; onDelete: (id: string) => void; 
             </div>
 
             {isEditing ? (
-                <div className="mb-2">
+                <div className="mb-2" onClick={e => e.stopPropagation()}>
                     <input
                         type="text"
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                         className="w-full text-sm border-b border-indigo-500 focus:outline-none pb-1 font-semibold"
                         autoFocus
+                        onKeyDown={(e) => e.key === 'Enter' && handleSave(e)}
                     />
                     <div className="flex justify-end gap-2 mt-2">
                         <button onClick={() => setIsEditing(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
@@ -86,14 +106,14 @@ const StudentCard: React.FC<{ student: Student; onDelete: (id: string) => void; 
             <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
                 <div className="flex items-center gap-1" title="Entregas">
                     <CheckCircle size={14} className={student.submissionCount ? "text-green-500" : "text-gray-300"} />
-                    <span>{student.submissionCount || 0} Exámenes</span>
+                    <span>{student.submissionCount || 0}</span>
                 </div>
                 {student.averageScore !== undefined && student.averageScore > 0 ? (
                     <span className={`font-bold ${student.averageScore >= 7 ? 'text-green-600' : 'text-amber-600'}`}>
                         {student.averageScore.toFixed(1)}/10
                     </span>
                 ) : (
-                    <span className="text-gray-400 italic">Sin notas</span>
+                    <span className="text-gray-400 italic">—</span>
                 )}
             </div>
         </div>
@@ -106,6 +126,7 @@ export default function StudentManager({ courseId, isOpen, onClose }: StudentMan
     const [inputList, setInputList] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'bulk'>('grid');
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
     useEffect(() => {
         if (courseId) {
@@ -115,6 +136,41 @@ export default function StudentManager({ courseId, isOpen, onClose }: StudentMan
             return () => unsubscribe();
         }
     }, [courseId]);
+
+    // Sorted Students (Surname logic)
+    const sortedStudents = useMemo(() => {
+        return [...students].sort((a, b) => {
+            // Primitive surname detection: last word
+            const getSurname = (fullName: string) => {
+                const parts = fullName.trim().split(/\s+/);
+                return parts.length > 1 ? parts[parts.length - 2] + " " + parts[parts.length - 1] : parts[0];
+                // Mejor lógica: Asumimos Apellidos Nombres si es lista formal, o intentamos ordenar por todo el string
+                // Prompt dice: "Orden: Alfabético estricto por APELLIDOS".
+                // Si input es "Juan Perez", apellido es Perez.
+                // Si input es "Perez Juan", apellido es Perez.
+                // Difícil saber formato. Vamos a asumir que el usuario ingresa "Apellidos Nombres" o usaremos la última palabra como criterio secundario.
+                // Simple approach: Sort by full string for now as usually lists are consistent.
+                // But Prompt asks to detect surname.
+                // Let's assume standard "Name Surname" -> Sort by last token.
+                // If "Surname Name" -> Sort by first token.
+                // Safer: Sort alphabetical by generic string, user usually inputs consistent format.
+                // Let's try to grab the last word as surname token for sorting A-Z.
+                const lastA = parts[parts.length - 1].toLowerCase();
+                // Actually, strict alphabetical on the whole string is usually standard for "Apellidos Nombres". 
+                // Let's stick to full string sort to be safe against mixed formats, but verify if we can do better.
+                // Prompt: "Intenta detectar el apellido (última palabra)".
+                return parts[parts.length - 1].localeCompare(fullName.trim().split(/\s+/).pop() || '');
+            };
+
+            // Let's use standard localeCompare on full name, BUT prompt specifically asked for surname sort (Last Word).
+            const surnameA = a.name.trim().split(/\s+/).pop()?.toLowerCase() || '';
+            const surnameB = b.name.trim().split(/\s+/).pop()?.toLowerCase() || '';
+
+            const comparison = surnameA.localeCompare(surnameB);
+            if (comparison !== 0) return comparison;
+            return a.name.localeCompare(b.name);
+        });
+    }, [students]);
 
     const handleAddStudents = async () => {
         if (!inputList.trim()) return;
@@ -172,15 +228,17 @@ export default function StudentManager({ courseId, isOpen, onClose }: StudentMan
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col animate-in fade-in zoom-in duration-200">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col animate-in fade-in zoom-in duration-200">
 
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-xl">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                         <Users className="text-indigo-600" size={24} />
                         <div>
                             <h2 className="text-xl font-bold text-gray-800">Gestión de Estudiantes</h2>
-                            <p className="text-xs text-gray-500">Curso Actual</p>
+                            <p className="text-xs text-gray-500 font-medium">
+                                Total Estudiantes: <span className="text-indigo-600 font-bold text-sm bg-indigo-50 px-2 py-0.5 rounded-full">{students.length}</span>
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -215,12 +273,14 @@ export default function StudentManager({ courseId, isOpen, onClose }: StudentMan
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {students.map(student => (
+                                    {sortedStudents.map((student, idx) => (
                                         <StudentCard
                                             key={student.id}
+                                            index={idx + 1}
                                             student={student}
                                             onDelete={handleDeleteStudent}
                                             onUpdate={handleUpdateStudent}
+                                            onClick={setSelectedStudent}
                                         />
                                     ))}
                                 </div>
@@ -264,6 +324,14 @@ export default function StudentManager({ courseId, isOpen, onClose }: StudentMan
                     )}
                 </div>
             </div>
+
+            {selectedStudent && (
+                <StudentReportModal
+                    student={selectedStudent}
+                    courseId={courseId}
+                    onClose={() => setSelectedStudent(null)}
+                />
+            )}
         </div>
     );
 }
