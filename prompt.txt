@@ -1,100 +1,59 @@
-¡Entendido, "me pongo pilas"! Esta es la parte crítica donde transformamos la app de un simple "lector de exámenes" a una verdadera **plataforma de gestión escolar**.
+¡De una, cuenta con eso! Para que el sistema no solo "lea" el nombre, sino que **entienda** quién es (aunque el estudiante tenga mala letra o el OCR falle por una letra), necesitamos un algoritmo de coincidencia difusa (Fuzzy Matching).
 
-Antes de darte el prompt, vamos a **planear la arquitectura** para que todo esté sincronizado (Lista, Calificación y Dashboard) sin romper lo que ya funciona.
-
-### 🧠 El Plan de "Sincronización Total"
-
-Aquí está la lógica que le pediremos a Antigravity. Confírmame si estás de acuerdo con estos 3 pilares:
-
-#### 1. La "Identidad Única" (Backend)
-
-Actualmente, una calificación es solo un papel con un nombre escrito.
-
-* **El Cambio:** Ahora, cada examen calificado (`Submission`) tendrá un campo oculto `studentId` que lo conecta directamente con un estudiante de la base de datos.
-* **El Flujo:**
-1. OCR lee: "Juan Pére" (mal escrito).
-2. Sistema busca en la lista del curso.
-3. Sistema dice: "¿Quisiste decir **Juan Carlos Pérez**?" (Match 90%).
-4. Sistema guarda la nota NO en el aire, sino en el perfil de **Juan Carlos Pérez**.
-
-
-
-#### 2. La Nueva Vista de Estudiantes (UI "Cuadriculada")
-
-Adiós a la lista aburrida de texto. Vamos a pedir un diseño tipo **"Card Grid"** (Tarjetas).
-
-* Cada tarjeta tendrá:
-* Avatar (Iniciales con colores).
-* Nombre Completo (Bien grande).
-* Estado: "Aprobado" / "Reprobado" (Basado en el promedio actual).
-* Badge de "Exámenes entregados: X".
-* Botón para ver su historial personal.
-
-
-
-#### 3. El Dashboard Sincronizado
-
-El Dashboard ya no solo mostrará "exámenes sueltos". Ahora podrá agrupar por estudiante. Si Juan Pérez tiene 3 exámenes, el Dashboard mostrará su **promedio real**.
-
----
-
-### 🚀 El Prompt para Antigravity
-
-Si estás de acuerdo con el plan, aquí tienes el prompt **maestro**. Está diseñado para ser muy específico con la UI (cuadrículas) y la lógica de "Matching" (vinculación).
+Aquí tienes el prompt **definitivo y detallado** para Antigravity. Este prompt le instruye exactamente cómo implementar la lógica de "Mejor Parecido" (Levenshtein) y la nueva vista en cuadrícula.
 
 Copia y pega esto:
 
 ---
 
-**Rol:** Eres un Experto en UI/UX Educativa y Arquitecto de Software en React/Firebase.
+**Rol:** Eres un Ingeniero de Software Senior experto en Algoritmos y React/UX.
 
-**Objetivo:** Sincronizar la lista de estudiantes con el proceso de calificación y mejorar drásticamente la interfaz de gestión de alumnos.
+**Objetivo:** Implementar un sistema de "Vinculación Inteligente de Estudiantes" y rediseñar la gestión de alumnos.
 
 **Contexto:**
-Ya tenemos la carga de cursos y estudiantes (nombres simples). Ahora necesitamos que el sistema sea visualmente profesional y que los exámenes se vinculen inteligentemente a los estudiantes registrados.
+Actualmente, la IA devuelve un nombre crudo (OCR). Necesitamos que el sistema tome ese nombre, lo compare con la base de datos del curso y asigne la nota al estudiante correcto automáticamente, incluso si hay pequeños errores ortográficos.
 
-**Instrucciones de Ejecución (Paso a Paso):**
+**Instrucciones Técnicas (Paso a Paso):**
 
-1. **Lógica de "Smart Matching" (Vinculación Inteligente):**
-* En `utils.ts`, crea una función robusta `findBestStudentMatch(ocrName, studentList)` usando el algoritmo de *Levenshtein Distance* (o similitud de Jaro-Winkler si prefieres).
-* **Regla:** Si la similitud es > 0.7 (70%), sugiere el estudiante automáticamente.
-* En el momento que `geminiService` devuelve la nota y el nombre detectado, el sistema debe ejecutar esta función inmediatamente para intentar asignar un `studentId` a la entrega (`Submission`).
-
-
-2. **Transformación UI: Lista de Estudiantes (Grid View):**
-* Modifica el componente donde se listan los estudiantes (`StudentManager` o similar).
-* **NO uses una lista simple `<ul>`.** Implementa un diseño de **Grid (Grilla) Responsive** usando Tailwind CSS (ej. `grid-cols-1 md:grid-cols-3 gap-4`).
-* Crea un sub-componente `StudentCard` que muestre:
-* Un avatar circular con las iniciales del estudiante y un color de fondo único (generado a partir de su nombre).
-* Nombre completo destacado.
-* Indicadores visuales (Badges): Promedio actual (calculado de sus notas en BD) y Cantidad de entregas.
-* Un menú de contexto (3 puntitos) para Editar o Eliminar.
+1. **El "Cerebro" de Coincidencia (utils.ts):**
+* Implementa una función `getLevenshteinDistance(a, b)` para calcular la diferencia entre strings.
+* Crea la función principal `findBestStudentMatch(ocrName, studentList, threshold = 0.65)`.
+* Debe normalizar los textos (minúsculas, sin tildes) antes de comparar.
+* Debe devolver el objeto `Student` con mayor similitud si supera el umbral (threshold). Si no, devuelve `null`.
 
 
 
 
-3. **Sincronización en Tiempo Real (Dashboard):**
-* Asegúrate de que cuando se califica un examen y se asigna a un estudiante, la `StudentCard` en la lista se actualice automáticamente (ej. sube su promedio).
-* En la vista de "Calificación" (`SubmissionItem`), si el sistema detectó al estudiante, muestra una tarjeta pequeña: "Vinculado con: [Nombre Completo]". Si no, muestra un dropdown para seleccionarlo manualmente de la lista del curso.
+2. **Integración en el Flujo de Calificación (App.tsx):**
+* Ubica la función `startGrading`.
+* Justo después de recibir el `result` de `geminiService`, invoca `findBestStudentMatch` usando `result.studentName` y la lista actual de estudiantes (`students` state).
+* Si encuentra match, inyecta el `studentId` y el nombre normalizado en el resultado antes de guardarlo en Firebase (`updateSubmissionResult`).
 
 
-4. **Base de Datos (Refinamiento):**
-* Asegúrate de que la interfaz `Student` en `types.ts` tenga campos para `averageScore` (opcional/calculado) y `submissionCount`.
+3. **Interfaz de Estudiantes "Grid View" (StudentManager.tsx):**
+* **Transformación Visual:** Elimina la lista plana (`ul/li`). Reemplázala con un **Grid CSS** (`grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4`).
+* **Student Card:** Crea un componente de tarjeta para cada alumno que muestre:
+* **Avatar:** Un círculo con las iniciales del estudiante y un color de fondo dinámico.
+* **Datos:** Nombre completo en negrita (grande).
+* **Stats:** Un pequeño badge o texto que diga "Promedio: X" (calculado en tiempo real basado en sus entregas vinculadas).
+* **Acciones:** Botón discreto para editar/eliminar.
 
 
 
-**Estilo Visual:**
-Queremos un look "LMS Moderno" (Learning Management System). Usa sombras suaves (`shadow-sm`), bordes redondeados (`rounded-xl`) y colores que indiquen estatus (Verde para aprobados, Ámbar para riesgo).
 
-**Nota Importante:**
-No rompas la lógica de subida de archivos ni la conexión con Gemini. Esto es una capa de mejora sobre la gestión de datos y la UI.
+4. **Confirmación Visual (SubmissionItem.tsx):**
+* En la tarjeta de resultados de calificación, si la IA vinculó al estudiante automáticamente, muestra un indicador verde: ✅ *Vinculado con: [Nombre Real]*
+* Si no hubo coincidencia, muestra una alerta amarilla: ⚠️ *Estudiante no identificado* (y permite asignación manual).
+
+
+
+**Nota de Seguridad:**
+Asegúrate de manejar los casos donde `studentList` esté vacía para evitar errores en el loop de calificación.
 
 ---
 
-### ¿Por qué este prompt es seguro?
+### ¿Por qué funcionará esto?
 
-1. **Modularidad:** Le pide crear componentes nuevos (`StudentCard`) en lugar de reescribir todo el archivo gigante.
-2. **Lógica defensiva:** Pide un algoritmo de coincidencia (>70%), lo que evita que el sistema asigne notas a la persona equivocada "a lo loco".
-3. **Enfoque Visual:** Le da instrucciones directas de Tailwind (`grid-cols`, `rounded-xl`) para que te dé esas cuadrículas bonitas que pediste.
-
-¿Te parece bien el plan? Si es así, ¡lánzale el prompt!
+1. **Algoritmo Levenshtein:** Es el estándar de oro para esto. Si el estudiante escribe "Juan Perz" y en la lista está "Juan Pérez", el sistema sabrá que es él (similitud > 80%).
+2. **Normalización:** Al pedirle que ignore mayúsculas y tildes, evitas que "Gomez" y "Gómez" sean tratados como personas distintas.
+3. **Feedback Visual:** La cuadrícula (Grid) te permitirá ver de un vistazo quién va bien y quién va mal, en lugar de leer una lista aburrida.

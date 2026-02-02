@@ -27,7 +27,7 @@ export const downloadCSV = (data: string, filename: string) => {
 };
 
 // Levenshtein distance algorithm
-const levenshteinDistance = (a: string, b: string): number => {
+export const getLevenshteinDistance = (a: string, b: string): number => {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
 
   for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
@@ -47,19 +47,20 @@ const levenshteinDistance = (a: string, b: string): number => {
   return matrix[a.length][b.length];
 };
 
-export const findBestMatch = (ocrName: string, studentList: { id: string; name: string }[]): string | undefined => {
+export const findBestMatch = (ocrName: string, studentList: { id: string; name: string }[], thresholdRatio: number = 0.35): string | undefined => {
   if (!ocrName || studentList.length === 0) return undefined;
 
   let bestMatchId: string | undefined = undefined;
   let minDistance = Infinity;
-  // Threshold can be adjusted. A ratio of 0.3 implies 70% similarity.
-  const thresholdRatio = 0.3;
 
-  const normalizedOcrName = ocrName.toLowerCase().trim();
+  const normalizedOcrName = ocrName.toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remove accents
 
   for (const student of studentList) {
-    const normalizedStudentName = student.name.toLowerCase().trim();
-    const distance = levenshteinDistance(normalizedOcrName, normalizedStudentName);
+    const normalizedStudentName = student.name.toLowerCase().trim()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remove accents
+
+    const distance = getLevenshteinDistance(normalizedOcrName, normalizedStudentName);
     const maxLen = Math.max(normalizedOcrName.length, normalizedStudentName.length);
 
     // Check if distance is within acceptable threshold
