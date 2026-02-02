@@ -9,45 +9,62 @@
 
 > **"Transformando la evaluación educativa mediante Inteligencia Artificial Generativa."**
 
-**H.A.C.A.** es un **Proyecto de Investigación Tecnológica** desarrollado para explorar la automatización del flujo de trabajo de calificación en instituciones educativas. Mediante la integración de modelos de lenguaje masivos (**LLMs**) y visión computacional, el sistema automatiza la transcripción, corrección y análisis de evaluaciones físicas manuscritas, garantizando consistencia, objetividad y eficiencia operativa.
+<div align="justify">
+  <strong>H.A.C.A.</strong> es un <strong>Proyecto de Investigación Tecnológica</strong> desarrollado para explorar la automatización del flujo de trabajo de calificación en instituciones educativas. Mediante la integración de modelos de lenguaje masivos (<strong>LLMs</strong>) y visión computacional, el sistema automatiza la transcripción, corrección y análisis de evaluaciones físicas manuscritas, garantizando consistencia, objetividad y eficiencia operativa.
+</div>
 
 ---
 
 ## 🎯 Propósito Estratégico
 
-El objetivo central de **H.A.C.A.** es liberar al cuerpo docente de la carga operativa de la calificación manual repetitiva. La aplicación trasciende la simple asignación de una nota numérica; proporciona una **retroalimentación pedagógica detallada y constructiva**, analizando el razonamiento del estudiante. Es una herramienta ideal para:
+<div align="justify">
+  El objetivo central de <strong>H.A.C.A.</strong> es liberar al cuerpo docente de la carga operativa de la calificación manual repetitiva. La aplicación trasciende la simple asignación de una nota numérica; proporciona una <strong>retroalimentación pedagógica detallada y constructiva</strong>, analizando el razonamiento del estudiante. Es una herramienta ideal para:
+</div>
+
 *   **Evaluaciones de respuesta abierta y ensayos.**
 *   **Problemas matemáticos con desarrollo.**
 *   **Cuestionarios mixtos.**
 
 ## 📖 Flujo de Trabajo (User Journey)
 
-La interfaz ha sido diseñada bajo principios heurísticos de usabilidad para minimizar la curva de aprendizaje:
+<div align="justify">
+  La interfaz ha sido diseñada bajo principios heurísticos de usabilidad para minimizar la curva de aprendizaje:
+</div>
 
 1.  **Contextualización:**
-    El docente selecciona la jerarquía de trabajo: **Curso** (Grado/Paralelo, ej. "Decimo 'B'") → **Asignatura** (ej. "Ciencias") → **Examen**. Esta estructura fragmentada evita errores administrativos.
+    <div align="justify">
+      El docente selecciona la jerarquía de trabajo: <strong>Curso</strong> (Grado/Paralelo, ej. "Decimo 'B'") → <strong>Asignatura</strong> (ej. "Ciencias") → <strong>Examen</strong>. Esta estructura fragmentada evita errores administrativos.
+    </div>
 
 2.  **Calibración de la IA (Rúbrica):**
-    Antes de calificar, el usuario define los criterios de éxito. El sistema permite:
+    <div align="justify">
+      Antes de calificar, el usuario define los criterios de éxito. El sistema permite:
+    </div>
     *   Subir un **Solucionario Maestro** (imagen/PDF) como referencia de verdad.
     *   Ajustar el **Nivel de Exigencia** (Estricto, Moderado, Benevolente).
     *   Definir el puntaje máximo y el idioma de salida.
 
 3.  **Ingesta de Evidencias:**
-    Mediante una interfaz de **Arrastrar y Soltar**, se cargan las fotografías de los exámenes. El sistema convierte y optimiza las imágenes automáticamente en el navegador.
+    <div align="justify">
+      Mediante una interfaz de <strong>Arrastrar y Soltar</strong>, se cargan las fotografías de los exámenes. El sistema convierte y optimiza las imágenes automáticamente en el navegador.
+    </div>
 
 4.  **Análisis y Revisión:**
     *   **Ejecución:** Al iniciar la calificación, el motor de IA procesa la cola de entregas.
-    *   **Supervisión Humana:** El docente visualiza el resultado propuesto (transcripción + feedback + nota) y puede modificar cualquier parámetro manualmente si discrepa de la sugerencia de la IA.
+    *   **Supervisión Humana:** <div align="justify" style="display:inline">El docente visualiza el resultado propuesto (transcripción + feedback + nota) y puede modificar cualquier parámetro manualmente si discrepa de la sugerencia de la IA.</div>
 
 ---
 
 ## 🏛️ Arquitectura del Sistema
 
-La solución está construida sobre una arquitectura modular **Serverless**, priorizando la escalabilidad y la persistencia de datos en tiempo real.
+<div align="justify">
+  La solución está construida sobre una arquitectura modular <strong>Serverless</strong>, priorizando la escalabilidad y la persistencia de datos en tiempo real.
+</div>
 
 ### Jerarquía de Datos
-El sistema organiza la información siguiendo un modelo relacional jerárquico estricto para mantener la integridad referencial:
+<div align="justify">
+  El sistema organiza la información siguiendo un modelo relacional jerárquico estricto para mantener la integridad referencial:
+</div>
 1.  **Cursos (Courses):** Unidad organizativa que representa el grado y paralelo (ej. "8vo Año - Paralelo 'C'", "1er Bachillerato 'A'").
 2.  **Asignaturas/Materias (Subjects):** Divisiones académicas impartidas dentro de ese curso específico (ej. "Matemáticas", "Lengua y Literatura").
 3.  **Exámenes (Exams):** Evaluaciones específicas que contienen la configuración de la Rúbrica.
@@ -56,10 +73,10 @@ El sistema organiza la información siguiendo un modelo relacional jerárquico e
 ### Flujo de Datos (Data Pipeline)
 1.  **Ingesta:** Captura de imágenes de exámenes físicos y conversión optimizada a Base64 en el cliente.
 2.  **Procesamiento:**
-    *   **OCR & Análisis:** El motor **Google Gemini 2.5 Flash** procesa la imagen para extraer texto manuscrito y evaluarlo contra parámetros estrictos definidos en la rúbrica.
-    *   **Identificación (Student Matching):** Algoritmo de distancia de Levenshtein para vincular automáticamente el nombre manuscrito con la base de datos de estudiantes registrados.
+    *   **OCR & Análisis:** <div align="justify" style="display:inline">El motor <strong>Google Gemini 2.5 Flash</strong> procesa la imagen para extraer texto manuscrito y evaluarlo contra parámetros estrictos definidos en la rúbrica.</div>
+    *   **Identificación (Student Matching):** <div align="justify" style="display:inline">Algoritmo de distancia de Levenshtein para vincular automáticamente el nombre manuscrito con la base de datos de estudiantes registrados.</div>
 3.  **Persistencia:** Almacenamiento transaccional en **Firestore** con listeners `onSnapshot` para sincronización bidireccional inmediata.
-4.  **Hidratación de Estado:** Sistema de enrutamiento basado en **Hash Navigation** (`#course/:id/subject/:id/exam/:id`) que permite deep-linking y recuperación de contexto ante recargas de página.
+4.  **Hidratación de Estado:** <div align="justify" style="display:inline">Sistema de enrutamiento basado en <strong>Hash Navigation</strong> (<code>#course/:id/subject/:id/exam/:id</code>) que permite deep-linking y recuperación de contexto ante recargas de página.</div>
 
 ---
 
@@ -131,7 +148,9 @@ El sistema organiza la información siguiendo un modelo relacional jerárquico e
 
 ## 📄 Propiedad Intelectual
 
-Este software forma parte del **Proyecto Final de Investigación (MEDINA)**. Su distribución y uso están restringidos al ámbito académico y de evaluación del proyecto.
+<div align="justify">
+  Este software forma parte del <strong>Proyecto Final de Investigación (MEDINA)</strong>. Su distribución y uso están restringidos al ámbito académico y de evaluación del proyecto.
+</div>
 
 <div align="center">
   <br>
