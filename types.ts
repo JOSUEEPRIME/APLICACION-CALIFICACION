@@ -7,8 +7,14 @@ export enum GradingStatus {
 
 export interface Course {
   id: string;
-  name: string;
+  name: string; // Ej: "9no EGB - Paralelo A"
   description?: string;
+}
+
+export interface Subject {
+  id: string;
+  name: string; // Ej: "Matemáticas", "Lengua"
+  courseId: string;
 }
 
 export interface Student {
@@ -26,6 +32,7 @@ export interface StudentSubmission {
   result?: GradingResult;
   error?: string;
   courseId: string;
+  subjectId: string; // Nueva relación
   matchedStudentId?: string;
 }
 

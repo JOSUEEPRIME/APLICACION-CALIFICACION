@@ -13,13 +13,15 @@ import {
     where,
     writeBatch
 } from "firebase/firestore";
-import { StudentSubmission, GradingStatus, Course, Student } from "../types";
+import { StudentSubmission, GradingStatus, Course, Student, Subject } from "../types";
 
+// Nombres de colecciones
 // Nombres de colecciones
 // Nombres de colecciones
 const SUBMISSIONS_COLLECTION = "submissions";
 const COURSES_COLLECTION = "courses";
 const STUDENTS_COLLECTION = "students";
+const SUBJECTS_COLLECTION = "subjects";
 
 // Interfaz para guardar en BD
 export interface DBSubmission extends Omit<StudentSubmission, 'id'> {
@@ -37,8 +39,8 @@ export interface DBStudent extends Omit<Student, 'id'> {
 }
 
 // Crear nueva entrega (Ahora guarda el base64 directamente en Firestore)
-// courseId is now required
-export const createSubmission = async (submission: { fileName: string; mimeType: string, courseId: string }, fileData: string) => {
+// courseId and subjectId are now required
+export const createSubmission = async (submission: { fileName: string; mimeType: string, courseId: string, subjectId: string }, fileData: string) => {
     try {
         // IMPORTANTE: Guardamos el base64 directamente en el documento. 
         // Esto es lo que el usuario pidió ("solo usamos firestore").
@@ -50,6 +52,7 @@ export const createSubmission = async (submission: { fileName: string; mimeType:
             fileData: fileData, // <--- Base64 guardado aquí
             status: GradingStatus.PENDING,
             courseId: submission.courseId,
+            subjectId: submission.subjectId,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         };
@@ -87,14 +90,15 @@ export const deleteSubmission = async (id: string) => {
 };
 
 // Hook/Función para suscribirse a cambios en tiempo real
-export const subscribeToSubmissions = (callback: (data: StudentSubmission[]) => void, courseId: string | null) => {
-    if (!courseId) {
+// Ahora filtramos por SUBJECT ID, ya que es el nivel más específico
+export const subscribeToSubmissions = (callback: (data: StudentSubmission[]) => void, subjectId: string | null) => {
+    if (!subjectId) {
         callback([]);
         return () => { };
     }
     const q = query(
         collection(db, SUBMISSIONS_COLLECTION),
-        where("courseId", "==", courseId),
+        where("subjectId", "==", subjectId),
         orderBy("createdAt", "desc")
     );
 
@@ -110,6 +114,7 @@ export const subscribeToSubmissions = (callback: (data: StudentSubmission[]) => 
                 result: data.result,
                 error: data.error,
                 courseId: data.courseId,
+                subjectId: data.subjectId,
                 matchedStudentId: data.matchedStudentId
             } as StudentSubmission;
         });

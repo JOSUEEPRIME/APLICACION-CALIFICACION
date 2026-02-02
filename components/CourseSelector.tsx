@@ -90,16 +90,16 @@ export default function CourseSelector({ onSelectCourse }: CourseSelectorProps) 
                                         value={newCourseName}
                                         onChange={(e) => setNewCourseName(e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                                        placeholder="Ej. Matemáticas 101"
+                                        placeholder="Ej. 10mo EGB - Paralelo A"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Descripción (Opcional)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Descripción / Año Lectivo</label>
                                     <textarea
                                         value={newCourseDesc}
                                         onChange={(e) => setNewCourseDesc(e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none h-24"
-                                        placeholder="Descripción breve..."
+                                        placeholder="Año Lectivo 2025-2026..."
                                     />
                                 </div>
                                 <div className="flex gap-3 pt-2">

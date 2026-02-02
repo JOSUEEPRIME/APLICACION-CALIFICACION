@@ -5,8 +5,9 @@ import SubmissionItem from './components/SubmissionItem';
 import DetailModal from './components/DetailModal';
 import Dashboard from './components/Dashboard';
 import CourseSelector from './components/CourseSelector';
+import SubjectSelector from './components/SubjectSelector'; // New import
 import StudentManager from './components/StudentManager';
-import { RubricConfig, StudentSubmission, GradingStatus, Course, Student } from './types';
+import { RubricConfig, StudentSubmission, GradingStatus, Course, Student, Subject } from './types';
 import { gradeSubmission } from './services/geminiService';
 import { downloadCSV, findBestMatch } from './utils';
 import { BarChart2, Edit3, ArrowLeft, Users } from 'lucide-react';
@@ -20,8 +21,10 @@ export default function App() {
     language: 'spanish' // Default to Spanish
   });
 
-  // Course State
+  // Course & Subject State
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null); // New state
+
   const [showStudentManager, setShowStudentManager] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
 
@@ -30,7 +33,7 @@ export default function App() {
   const [isGrading, setIsGrading] = useState(false);
   const [currentView, setCurrentView] = useState<'grading' | 'dashboard'>('grading');
 
-  // Sync Students for selected course
+  // Sync Students for selected COURSE (Students belong to the course/grade, not just the subject)
   useEffect(() => {
     if (selectedCourse) {
       const unsubscribe = subscribeToStudents(selectedCourse.id, (data) => {
@@ -40,21 +43,21 @@ export default function App() {
     }
   }, [selectedCourse]);
 
-  // Real-time sync with Firestore (filtered by course)
+  // Real-time sync with Firestore (filtered by SUBJECT)
   useEffect(() => {
-    if (selectedCourse) {
+    if (selectedSubject) {
       const unsubscribe = subscribeToSubmissions((data) => {
         setSubmissions(data);
-      }, selectedCourse.id);
+      }, selectedSubject.id); // Filter by Subject ID now
       return () => unsubscribe();
     } else {
-      setSubmissions([]); // Clear submissions if no course selected
+      setSubmissions([]); // Clear submissions if no subject selected
     }
-  }, [selectedCourse]);
+  }, [selectedSubject]);
 
   // Add new files to the list -> Upload to Firebase
   const handleUpload = useCallback(async (files: { name: string; data: string; mimeType: string }[]) => {
-    if (!selectedCourse) return;
+    if (!selectedCourse || !selectedSubject) return;
 
     // Process uploads sequentially
     for (const f of files) {
@@ -62,14 +65,15 @@ export default function App() {
         await createSubmission({
           fileName: f.name,
           mimeType: f.mimeType,
-          courseId: selectedCourse.id
+          courseId: selectedCourse.id,
+          subjectId: selectedSubject.id
         }, f.data);
       } catch (error) {
         console.error("Upload failed", error);
         alert(`Error subiendo ${f.name}`);
       }
     }
-  }, [selectedCourse]);
+  }, [selectedCourse, selectedSubject]);
 
   // Remove a submission -> Delete from Firebase
   const handleRemove = async (id: string) => {
@@ -155,36 +159,68 @@ export default function App() {
 
   const completedCount = submissions.filter(s => s.status === GradingStatus.COMPLETED).length;
 
+  // 1. If no course selected, show course selector
   if (!selectedCourse) {
     return <CourseSelector onSelectCourse={setSelectedCourse} />;
   }
 
-  return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSelectedCourse(null)}
-                className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
-                title="Volver a mis cursos"
-              >
-                <ArrowLeft size={20} />
-              </button>
+  // 2. If course selected but NO subject selected, show subject selector
+  // Also pass onBack to clear selectedCourse
+  if (!selectedSubject) {
+    return (
+      <>
+        {/* If user wants to manage students for the course, show manager */}
+        {showStudentManager ? (
+          <StudentManager
+            isOpen={true}
+            courseId={selectedCourse.id}
+            onClose={() => setShowStudentManager(false)}
+          />
+        ) : (
+          <SubjectSelector
+            course={selectedCourse}
+            onSelectSubject={setSelectedSubject}
+            onBack={() => setSelectedCourse(null)}
+          />
+        )}
+        {/* Small button to open student manager if not visible - actually maybe we should put this inside SubjectSelector? 
+           Ideally SubjectSelector should have a button "Manage Students for this Course". 
+           For now, let's keep it simple or verify if SubjectSelector has it.
+           Wait, SubjectSelector file I created DOES NOT have "Manage Students" button.
+           I should update SubjectSelector to include a button "Gestionar Estudiantes".
+           For now, I will render a Floating Action Button or similar if not in manager mode, or just render it conditionally.
+           
+           Actually, let's inject a "Gestionar Estudiantes" button into the SubjectSelector logic or wrapper.
+       */}
+        {!showStudentManager && (
+          <div className="fixed bottom-6 right-6 z-40">
+            <button
+              onClick={() => setShowStudentManager(true)}
+              className="flex items-center gap-2 bg-gray-800 text-white px-5 py-3 rounded-full shadow-lg hover:scale-105 transition-transform"
+            >
+              <Users size={20} />
+              <span className="font-bold">Estudiantes del Curso</span>
+            </button>
+          </div>
+        )}
+      </>
+    );
+  }
 
-              <div className="flex items-center gap-2">
-                {/* Logo Small */}
-                <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg p-1 shadow-md">
-                  <span className="text-white font-bold text-xs px-1">H</span>
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-gray-900 tracking-tight leading-none">{selectedCourse.name}</h1>
-                  <p className="text-[10px] text-gray-500 font-medium tracking-wide">Panel de Calificación</p>
-                </div>
-              </div>
-            </div>
+  // 3. Main Grading Interface (Subject Selected)
+  return (
+    <div className="min-h-screen bg-gray-100 flex flex-col font-sans">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSelectedSubject(null)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+              title="Volver a Materias"
+            >
+              <ArrowLeft size={20} />
+            </button>
 
             {/* Navigation Tabs */}
             <nav className="flex items-center bg-gray-100 p-1 rounded-lg ml-4">
@@ -211,15 +247,8 @@ export default function App() {
             </nav>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowStudentManager(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Users className="h-4 w-4" />
-              Estudiantes
-            </button>
-
+          <div className="flex items-center gap-3">
+            {/* View Toggle */}
             {currentView === 'grading' && completedCount > 0 && (
               <button
                 onClick={handleExport}
@@ -324,13 +353,6 @@ export default function App() {
           onClose={() => setSelectedSubmissionId(null)}
         />
       )}
-
-      {/* Student Manager Modal */}
-      <StudentManager
-        isOpen={showStudentManager}
-        onClose={() => setShowStudentManager(false)}
-        courseId={selectedCourse.id}
-      />
     </div>
   );
 }
