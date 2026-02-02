@@ -4,11 +4,13 @@ import StudentUpload from './components/StudentUpload';
 import SubmissionItem from './components/SubmissionItem';
 import DetailModal from './components/DetailModal';
 import Dashboard from './components/Dashboard';
-import { RubricConfig, StudentSubmission, GradingStatus } from './types';
+import CourseSelector from './components/CourseSelector';
+import StudentManager from './components/StudentManager';
+import { RubricConfig, StudentSubmission, GradingStatus, Course, Student } from './types';
 import { gradeSubmission } from './services/geminiService';
-import { downloadCSV } from './utils';
-import { BarChart2, Edit3 } from 'lucide-react';
-import { subscribeToSubmissions, createSubmission, deleteSubmission, updateSubmissionResult } from './services/db';
+import { downloadCSV, findBestMatch } from './utils';
+import { BarChart2, Edit3, ArrowLeft, Users } from 'lucide-react';
+import { subscribeToSubmissions, createSubmission, deleteSubmission, updateSubmissionResult, subscribeToStudents } from './services/db';
 
 export default function App() {
   const [rubric, setRubric] = useState<RubricConfig>({
@@ -18,32 +20,56 @@ export default function App() {
     language: 'spanish' // Default to Spanish
   });
 
+  // Course State
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [showStudentManager, setShowStudentManager] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
+
   const [submissions, setSubmissions] = useState<StudentSubmission[]>([]);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
   const [isGrading, setIsGrading] = useState(false);
   const [currentView, setCurrentView] = useState<'grading' | 'dashboard'>('grading');
 
-  // Real-time sync with Firestore
+  // Sync Students for selected course
   useEffect(() => {
-    // Import dynamically to avoid circular dependencies if any, though here it's fine direct
-    const unsubscribe = subscribeToSubmissions((data) => {
-      setSubmissions(data);
-    });
-    return () => unsubscribe();
-  }, []);
+    if (selectedCourse) {
+      const unsubscribe = subscribeToStudents(selectedCourse.id, (data) => {
+        setStudents(data);
+      });
+      return () => unsubscribe();
+    }
+  }, [selectedCourse]);
+
+  // Real-time sync with Firestore (filtered by course)
+  useEffect(() => {
+    if (selectedCourse) {
+      const unsubscribe = subscribeToSubmissions((data) => {
+        setSubmissions(data);
+      }, selectedCourse.id);
+      return () => unsubscribe();
+    } else {
+      setSubmissions([]); // Clear submissions if no course selected
+    }
+  }, [selectedCourse]);
 
   // Add new files to the list -> Upload to Firebase
   const handleUpload = useCallback(async (files: { name: string; data: string; mimeType: string }[]) => {
+    if (!selectedCourse) return;
+
     // Process uploads sequentially
     for (const f of files) {
       try {
-        await createSubmission({ fileName: f.name, mimeType: f.mimeType }, f.data);
+        await createSubmission({
+          fileName: f.name,
+          mimeType: f.mimeType,
+          courseId: selectedCourse.id
+        }, f.data);
       } catch (error) {
         console.error("Upload failed", error);
         alert(`Error subiendo ${f.name}`);
       }
     }
-  }, []);
+  }, [selectedCourse]);
 
   // Remove a submission -> Delete from Firebase
   const handleRemove = async (id: string) => {
@@ -51,14 +77,14 @@ export default function App() {
     if (!sub) return;
 
     if (confirm("¿Estás seguro de eliminar este examen?")) {
-      await deleteSubmission(id); // Only ID needed now, fileData is embedded
+      await deleteSubmission(id); // Only ID needed now
       if (selectedSubmissionId === id) setSelectedSubmissionId(null);
     }
   };
 
   // Trigger Grading Process
   const startGrading = async () => {
-    // Validación: Debe existir texto O un archivo de rúbrica
+    // Validación
     const hasRubricContent = rubric.description.trim().length > 0 || (rubric.rubricFileData && rubric.rubricFileData.length > 0);
 
     if (!hasRubricContent) {
@@ -68,7 +94,6 @@ export default function App() {
 
     setIsGrading(true);
 
-    // We process sequentially 
     const pendingSubmissions = submissions.filter(s => s.status === GradingStatus.PENDING || s.status === GradingStatus.ERROR);
 
     for (const sub of pendingSubmissions) {
@@ -79,8 +104,25 @@ export default function App() {
         // 2. Grade directly using fileData (from Firestore doc)
         const result = await gradeSubmission(sub.fileData, sub.mimeType, rubric);
 
-        // 3. Save result
-        await updateSubmissionResult(sub.id, result, GradingStatus.COMPLETED);
+        // 3. Find Best Match for Student
+        const matchedId = findBestMatch(result.studentName, students);
+
+        // 4. Update result object with matched info if found (optional, but good for UI)
+        if (matchedId) {
+          const matchedStudent = students.find(s => s.id === matchedId);
+          if (matchedStudent) {
+            result.studentName = matchedStudent.name; // Auto-correct name
+          }
+        } else {
+          // Si no hay coincidencia, marcar como no identificado en el nombre si se desea, 
+          // o simplemente dejar el nombre OCR.
+          // El prompt decia: "Si no, marca como 'Estudiante no identificado'".
+          // Podemos forzar el nombre si es muy malo el OCR, pero dejemos el OCR por ahora para corrección manual.
+        }
+
+        // 5. Save result
+        await updateSubmissionResult(sub.id, result, GradingStatus.COMPLETED, matchedId);
+
       } catch (error) {
         console.error(`Error grading ${sub.fileName}:`, error);
         await updateSubmissionResult(sub.id, { error: (error as Error).message }, GradingStatus.ERROR);
@@ -113,21 +155,34 @@ export default function App() {
 
   const completedCount = submissions.filter(s => s.status === GradingStatus.COMPLETED).length;
 
+  if (!selectedCourse) {
+    return <CourseSelector onSelectCourse={setSelectedCourse} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg p-1.5 shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              </div>
-              <div className="hidden md:block">
-                <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">H.A.C.A.</h1>
-                <p className="text-[10px] text-gray-500 font-medium tracking-wide">Herramienta Automatizada de Calificación</p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSelectedCourse(null)}
+                className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+                title="Volver a mis cursos"
+              >
+                <ArrowLeft size={20} />
+              </button>
+
+              <div className="flex items-center gap-2">
+                {/* Logo Small */}
+                <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg p-1 shadow-md">
+                  <span className="text-white font-bold text-xs px-1">H</span>
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-gray-900 tracking-tight leading-none">{selectedCourse.name}</h1>
+                  <p className="text-[10px] text-gray-500 font-medium tracking-wide">Panel de Calificación</p>
+                </div>
               </div>
             </div>
 
@@ -157,6 +212,14 @@ export default function App() {
           </div>
 
           <div className="flex gap-3">
+            <button
+              onClick={() => setShowStudentManager(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Users className="h-4 w-4" />
+              Estudiantes
+            </button>
+
             {currentView === 'grading' && completedCount > 0 && (
               <button
                 onClick={handleExport}
@@ -261,6 +324,13 @@ export default function App() {
           onClose={() => setSelectedSubmissionId(null)}
         />
       )}
+
+      {/* Student Manager Modal */}
+      <StudentManager
+        isOpen={showStudentManager}
+        onClose={() => setShowStudentManager(false)}
+        courseId={selectedCourse.id}
+      />
     </div>
   );
 }

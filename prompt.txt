@@ -1,3 +1,65 @@
-Esta archivo contenía temporalmente las claves para facilitar la copia.
-Han sido removidas por seguridad para evitar subirlas al repositorio.
-Las claves deben estar configuradas en tus Variables de Entorno y Secrets de GitHub.
+Para ejecutar esta idea en Antigravity (o cualquier asistente de código como Cursor/Windsurf) sin romper la estructura actual, debemos plantearlo como una **arquitectura de capas aditivas**. No vamos a reescribir la lógica de calificación, sino "envolverla" en un contexto de curso.
+
+Aquí tienes el prompt optimizado. Copia y pega esto en tu chat con la IA:
+
+---
+
+### Prompt para Antigravity
+
+**Rol:** Eres un Arquitecto de Software Senior experto en React, TypeScript y Firebase.
+**Objetivo:** Implementar un sistema de gestión de "Cursos" y "Listas de Estudiantes" sobre la aplicación de calificación actual, manteniendo intacta la lógica de `geminiService` y la estructura visual existente tanto como sea posible.
+
+**Contexto Actual:**
+La app actualmente califica entregas individuales y las guarda en una colección plana `submissions`. No hay distinción entre cursos ni validación contra una lista de alumnos real.
+
+**Nuevos Requerimientos:**
+Necesito que implementes las siguientes funcionalidades paso a paso:
+
+1. **Gestión de Datos (Types & Firebase):**
+* Modifica `types.ts` para agregar interfaces `Course` (id, name, description) y `Student` (id, name, courseId).
+* Actualiza la interfaz `StudentSubmission` para incluir un `courseId` (obligatorio) y `matchedStudentId` (opcional).
+* En `services/db.ts`, añade funciones para crear/listar cursos y añadir estudiantes en lote (bulk add) a un curso.
+
+
+2. **Nuevo Flujo de Usuario (App.tsx):**
+* **Pantalla de Selección de Curso:** Antes de mostrar el panel de calificación (`RubricPanel` y `StudentUpload`), el usuario debe ver una pantalla para:
+* Crear un nuevo curso.
+* Seleccionar un curso existente.
+
+
+* Una vez seleccionado el curso, la app carga el contexto de ese curso y muestra la interfaz de calificación actual (que ahora guardará las notas asociadas a ese `courseId`).
+
+
+3. **Gestión de Estudiantes (Dentro del Curso):**
+* Agrega un botón o modal para "Gestionar Estudiantes" dentro del curso seleccionado.
+* Permite "Importar Lista": Un área de texto simple donde el profesor pueda pegar una lista de nombres (uno por línea) o subir un archivo CSV/TXT simple para poblar la base de datos de estudiantes de ese curso.
+
+
+4. **Lógica de Asignación Automática (Matching):**
+* Cuando `geminiService` devuelva el `studentName` (OCR) de la hoja manuscrita, implementa una función de utilidad (usando algoritmo de Levenshtein o similitud simple de strings) que intente emparejar ese nombre con la lista de estudiantes registrados en el curso.
+* Si hay coincidencia, asigna la nota a ese estudiante en la BD. Si no, marca como "Estudiante no identificado".
+
+
+5. **Edición Manual (Override):**
+* Modifica el `DetailModal` o la lista de resultados para que los campos **Nombre del Estudiante** y **Calificación** sean inputs editables.
+* Si el profesor edita la nota o el nombre, debe haber un botón "Guardar Cambios" que actualice el documento en Firebase usando `updateSubmissionResult`.
+
+
+
+**Restricciones Críticas:**
+
+* NO modifiques la lógica interna de `geminiService.ts`.
+* NO elimines la funcionalidad actual de exportación CSV.
+* Asegúrate de que las suscripciones de Firebase (`subscribeToSubmissions`) ahora filtren por el `courseId` seleccionado.
+
+**Primer paso:**
+Por favor, genera primero las modificaciones necesarias en `types.ts` y `services/db.ts`, y crea una función de utilidad `findBestMatch(ocrName, studentList)` en `utils.ts`.
+
+---
+
+### Por qué este prompt funciona mejor:
+
+1. **Protección de código:** Le dice explícitamente "NO modifiques geminiService", protegiendo la parte más delicada de tu app.
+2. **Algoritmo de Coincidencia (Matching):** Le pide específicamente una función de similitud (Levenshtein). Esto es crucial porque el estudiante escribirá "Juan Perez" a mano, pero en la lista puede estar como "Perez Juan" o la IA puede leer "Juan Pcrez". El sistema necesita lógica difusa para unirlos.
+3. **Filtrado por Curso:** Instruye cambiar la suscripción de la base de datos para que no se mezclen exámenes de Matemáticas con los de Lenguaje.
+4. **Edición Manual:** Pide explícitamente que los campos sean inputs editables, resolviendo tu necesidad de que el profesor tenga la última palabra.

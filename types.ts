@@ -5,6 +5,18 @@ export enum GradingStatus {
   ERROR = 'ERROR',
 }
 
+export interface Course {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface Student {
+  id: string;
+  name: string;
+  courseId: string;
+}
+
 export interface StudentSubmission {
   id: string;
   fileName: string;
@@ -13,6 +25,8 @@ export interface StudentSubmission {
   status: GradingStatus;
   result?: GradingResult;
   error?: string;
+  courseId: string;
+  matchedStudentId?: string;
 }
 
 export interface GradingResult {
@@ -30,7 +44,7 @@ export interface RubricConfig {
   rubricFileData?: string;
   rubricFileMimeType?: string;
   rubricFileName?: string;
-  
+
   maxScore: number;
   strictness: 'lenient' | 'moderate' | 'strict';
   language: 'english' | 'spanish' | 'auto';
