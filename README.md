@@ -1,7 +1,7 @@
 # 🎓 H.A.C.A. - Herramienta Automatizada de Calificación Académica
 
 ![Project Banner](https://img.shields.io/badge/Estado-Producción-success?style=for-the-badge&logo=activity)
-![React](https://img.shields.io/badge/React%2018-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![React](https://img.shields.io/badge/React%2019-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Firestore-039BE5?style=for-the-badge&logo=Firebase&logoColor=white)
 ![Gemini AI](https://img.shields.io/badge/Gemini_2.5_Flash-8E75B2?style=for-the-badge&logo=google&logoColor=white)
@@ -10,6 +10,35 @@
 > **"Transformando la evaluación educativa mediante Inteligencia Artificial Generativa."**
 
 **H.A.C.A.** es una plataforma empresarial diseñada para modernizar el flujo de trabajo de calificación en instituciones educativas. Mediante la integración de modelos de lenguaje masivos (**LLMs**) y visión computacional, el sistema automatiza la transcripción, corrección y análisis de evaluaciones físicas manuscritas, garantizando consistencia, objetividad y eficiencia operativa.
+
+---
+
+## 🎯 Propósito Estratégico
+
+El objetivo central de **H.A.C.A.** es liberar al cuerpo docente de la carga operativa de la calificación manual repetitiva. La aplicación trasciende la simple asignación de una nota numérica; proporciona una **retroalimentación pedagógica detallada y constructiva**, analizando el razonamiento del estudiante. Es una herramienta ideal para:
+*   **Evaluaciones de respuesta abierta y ensayos.**
+*   **Problemas matemáticos con desarrollo.**
+*   **Cuestionarios mixtos.**
+
+## 📖 Flujo de Trabajo (User Journey)
+
+La interfaz ha sido diseñada bajo principios heurísticos de usabilidad para minimizar la curva de aprendizaje:
+
+1.  **Contextualización:**
+    El docente selecciona la jerarquía de trabajo: **Curso** (Grado) → **Asignatura** → **Examen**. Esta estructura fragmentada evita errores administrativos.
+
+2.  **Calibración de la IA (Rúbrica):**
+    Antes de calificar, el usuario define los criterios de éxito. El sistema permite:
+    *   Subir un **Solucionario Maestro** (imagen/PDF) como referencia de verdad.
+    *   Ajustar el **Nivel de Exigencia** (Estricto, Moderado, Benevolente).
+    *   Definir el puntaje máximo y el idioma de salida.
+
+3.  **Ingesta de Evidencias:**
+    Mediante una interfaz de **Arrastrar y Soltar**, se cargan las fotografías de los exámenes. El sistema convierte y optimiza las imágenes automáticamente en el navegador.
+
+4.  **Análisis y Revisión:**
+    *   **Ejecución:** Al iniciar la calificación, el motor de IA procesa la cola de entregas.
+    *   **Supervisión Humana:** El docente visualiza el resultado propuesto (transcripción + feedback + nota) y puede modificar cualquier parámetro manualmente si discrepa de la sugerencia de la IA.
 
 ---
 
@@ -48,7 +77,7 @@ El sistema organiza la información siguiendo un modelo relacional jerárquico e
 
 | Componente | Tecnología | Propósito |
 | :--- | :--- | :--- |
-| **Frontend** | React 18 + Vite | Motor de renderizado de alto rendimiento. |
+| **Frontend** | React 19 + Vite | Motor de renderizado de alto rendimiento. |
 | **Lenguaje** | TypeScript | Tipado estático para asegurar la robustez del código. |
 | **Estilos** | Tailwind CSS | Framework de utilidades para diseño consistente. |
 | **BaaS** | Firebase (Firestore) | Base de datos NoSQL, Auth y Hosting. |
