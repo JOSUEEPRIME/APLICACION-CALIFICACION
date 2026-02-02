@@ -23,6 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 
+# Archives
+*.zip
+*.rar
+*.tar.gz
+
+
 # Firebase Admin SDK
 *-firebase-adminsdk-*.json
 

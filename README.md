@@ -25,7 +25,7 @@ El objetivo central de **H.A.C.A.** es liberar al cuerpo docente de la carga ope
 La interfaz ha sido diseñada bajo principios heurísticos de usabilidad para minimizar la curva de aprendizaje:
 
 1.  **Contextualización:**
-    El docente selecciona la jerarquía de trabajo: **Curso** (Grado) → **Asignatura** → **Examen**. Esta estructura fragmentada evita errores administrativos.
+    El docente selecciona la jerarquía de trabajo: **Curso** (Grado/Paralelo, ej. "Decimo 'B'") → **Asignatura** (ej. "Ciencias") → **Examen**. Esta estructura fragmentada evita errores administrativos.
 
 2.  **Calibración de la IA (Rúbrica):**
     Antes de calificar, el usuario define los criterios de éxito. El sistema permite:
@@ -48,8 +48,8 @@ La solución está construida sobre una arquitectura modular **Serverless**, pri
 
 ### Jerarquía de Datos
 El sistema organiza la información siguiendo un modelo relacional jerárquico estricto para mantener la integridad referencial:
-1.  **Cursos (Courses):** Unidad organizativa superior (ej. "Matemáticas 101").
-2.  **Asignaturas/Materias (Subjects):** Divisiones temáticas dentro de un curso (ej. "Álgebra").
+1.  **Cursos (Courses):** Unidad organizativa que representa el grado y paralelo (ej. "8vo Año - Paralelo 'C'", "1er Bachillerato 'A'").
+2.  **Asignaturas/Materias (Subjects):** Divisiones académicas impartidas dentro de ese curso específico (ej. "Matemáticas", "Lengua y Literatura").
 3.  **Exámenes (Exams):** Evaluaciones específicas que contienen la configuración de la Rúbrica.
 4.  **Entregas (Submissions):** Instancias individuales de estudiantes vinculadas a un Examen.
 
