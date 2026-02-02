@@ -184,3 +184,35 @@ export const subscribeToStudents = (courseId: string, callback: (data: Student[]
         callback(students);
     });
 };
+
+// --- Subject Management ---
+
+export const createSubject = async (name: string, courseId: string) => {
+    try {
+        const docData = {
+            name,
+            courseId,
+            createdAt: serverTimestamp()
+        };
+        const docRef = await addDoc(collection(db, SUBJECTS_COLLECTION), docData);
+        return { id: docRef.id, ...docData };
+    } catch (error) {
+        console.error("Error creating subject:", error);
+        throw error;
+    }
+};
+
+export const subscribeToSubjects = (courseId: string, callback: (data: Subject[]) => void) => {
+    const q = query(
+        collection(db, SUBJECTS_COLLECTION),
+        where("courseId", "==", courseId),
+        orderBy("createdAt", "asc")
+    );
+    return onSnapshot(q, (snapshot) => {
+        const subjects = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        })) as Subject[];
+        callback(subjects);
+    });
+};
