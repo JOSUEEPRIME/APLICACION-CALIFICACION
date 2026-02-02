@@ -192,9 +192,105 @@ export default function App() {
 
   const completedCount = submissions.filter(s => s.status === GradingStatus.COMPLETED).length;
 
+  // Handle Browser History (Back Button)
+  useEffect(() => {
+    // Initial State Check
+    // If we reload, we might want to check hash, but for now let's just assume we start fresh or user navigates
+
+    const handlePopState = () => {
+      const hash = window.location.hash;
+      console.log("PopState:", hash);
+
+      // Simple routing based on hash depth or content
+      // Logic:
+      // #course/subject/exam -> We are in grading
+      // #course/subject -> We are in exam selector
+      // #course -> We are in subject selector
+      // # -> We are in course selector
+
+      if (hash.includes('/exam/')) {
+        // Stay in exam? Or if we were in something else?
+        // Actually, if we popstate TO this, we should ensure state matches.
+        // But complex to sync perfectly if we reload. 
+        // Let's implement the logic requested: "Si está en GradingView, vuelve a ExamSelector" etc.
+        // Effectively, the "Previous" state is what we want.
+
+        // If hash is #course/subject, we should BE in exam selector (no exam selected)
+        // If hash Is #course, we should BE in subject selector (no subject selected)
+        // If hash empty, no course selected.
+      }
+
+      // Better approach: Read state from hash to set App state
+      const parts = hash.replace('#', '').split('/');
+      // Expected formats: 
+      // course/[id]
+      // course/[id]/subject/[id]
+      // course/[id]/subject/[id]/exam/[id]
+
+      if (parts.length >= 6 && parts[4] === 'exam') {
+        // We should be in grading view. 
+        // If we are, fine. If not, we might not have the object data easily to restore.
+        // Limitation: We store OBJECTS in state (selectedCourse: Course). URL only has ID.
+        // Restoring full object from ID requires fetching.
+        // For a simple "Back button works" within a session:
+        // We can rely on the fact that if we POP to a state, we likely set that state previously.
+        // The prompted solution suggests: "Si el usuario presiona atrás..."
+
+        // Let's implement the specific logic:
+        // If URL becomes #course/subject (implied), unset Exam.
+        // If URL becomes #course, unset Subject.
+        // If URL becomes empty, unset Course.
+      }
+
+      // Let's try to match the Hash to the State Levels
+      const isExamLevel = hash.includes('/exam/'); // #course/cId/subject/sId/exam/eId
+      const isSubjectLevel = hash.includes('/subject/') && !isExamLevel; // #course/cId/subject/sId
+      const isCourseLevel = hash.includes('/course/') && !isSubjectLevel;
+
+      if (isSubjectLevel) {
+        setSelectedExam(null);
+      } else if (isCourseLevel) {
+        setSelectedExam(null);
+        setSelectedSubject(null);
+      } else if (!hash || hash === '') {
+        setSelectedExam(null);
+        setSelectedSubject(null);
+        setSelectedCourse(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleSelectCourse = (course: Course) => {
+    setSelectedCourse(course);
+    window.history.pushState({}, '', `#course/${course.id}`);
+  };
+
+  const handleSelectSubject = (subject: Subject) => {
+    setSelectedSubject(subject);
+    window.history.pushState({}, '', `#course/${selectedCourse?.id}/subject/${subject.id}`);
+  };
+
+  const handleSelectExam = (exam: Exam) => {
+    setSelectedExam(exam);
+    window.history.pushState({}, '', `#course/${selectedCourse?.id}/subject/${selectedSubject?.id}/exam/${exam.id}`);
+  };
+
+  const handleBackToSubject = () => {
+    // Go back from Exam to Subject
+    window.history.back(); // This triggers popstate, which handles the state update
+    // Alternatively manual:
+    // setSelectedExam(null);
+    // window.history.pushState({}, '', `#course/${selectedCourse?.id}/subject/${selectedSubject?.id}`);
+    // The prompt implies we want "Back" button to work. 
+    // Clicking our "Back" button (UI) should probably just go back in history if we want to be consistent.
+  };
+
   // 1. If no course selected, show course selector
   if (!selectedCourse) {
-    return <CourseSelector onSelectCourse={setSelectedCourse} />;
+    return <CourseSelector onSelectCourse={handleSelectCourse} />;
   }
 
   // 2. If course selected but NO subject selected, show subject selector
@@ -210,8 +306,11 @@ export default function App() {
         ) : (
           <SubjectSelector
             course={selectedCourse}
-            onSelectSubject={setSelectedSubject}
-            onBack={() => setSelectedCourse(null)}
+            onSelectSubject={handleSelectSubject}
+            onBack={() => {
+              // UI Back Button: Go back in history
+              window.history.back();
+            }}
           />
         )}
         {!showStudentManager && (
@@ -225,6 +324,9 @@ export default function App() {
             </button>
           </div>
         )}
+        <div className="fixed bottom-6 left-6 z-40 sm:hidden">
+          {/* Mobile Fab for easy thumb access if needed, or stick to right */}
+        </div>
       </>
     );
   }
@@ -234,8 +336,9 @@ export default function App() {
     return (
       <ExamSelector
         subjectId={selectedSubject.id}
-        onSelectExam={setSelectedExam}
-        onBack={() => setSelectedSubject(null)}
+        studentCount={students.length}
+        onSelectExam={handleSelectExam}
+        onBack={() => window.history.back()}
       />
     );
   }
@@ -248,7 +351,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setSelectedExam(null)}
+              onClick={() => window.history.back()}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
               title="Volver a Exámenes"
             >

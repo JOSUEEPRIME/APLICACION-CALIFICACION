@@ -1,104 +1,86 @@
-¡Entendido! Como docente, sé exactamente lo que necesitas. No quieres solo "datos", quieres una **Libreta de Calificaciones Digital**. Necesitas ver rápidamente quién va mal en Matemáticas pero bien en Lenguaje, y necesitas orden.
+¡Claro que sí, mi bro! Vamos a pulir esa joya. 💎
 
-Aquí está la propuesta de organización "Docente Pro":
+Primero, déjame explicarte técnicamente lo que me pides sobre el botón de "Atrás", porque es un concepto fundamental en el desarrollo web moderno.
 
-1. **La Vista Principal (La Lista):**
-* **Orden:** Alfabético estricto por **APELLIDOS** (A-Z).
-* **Enumeración:** 1, 2, 3... para saber rápido cuántos son.
-* **Contador:** Un indicador grande arriba: *"Total Estudiantes: 32"*.
+### 🧠 ¿Qué es lo que pasa con el botón "Atrás"? (Explicación Técnica)
 
+Lo que tú quieres mejorar se llama **Enrutamiento (Routing)** o **Manejo del Historial del Navegador (Browser History Management)**.
 
-2. **El "Expediente" (Al hacer clic):**
-* No te voy a mostrar una lista desordenada. Lo organizaremos por **MATERIAS**.
-* **Encabezado:** Foto/Iniciales + Promedio General de todo el curso (GPA).
-* **Cuerpo:** Bloques separados por materia (ej. "Matemáticas", "Historia").
-* **Dentro de cada Materia:**
-* *Promedio de la Materia* (ej. 8.5/10).
-* *Desglose:* Examen 1 (9/10), Lección (8/10).
-
-
-* **Semáforo:** Notas rojas (<7) y verdes (>=7).
-
-
-
-Aquí tienes el prompt diseñado para que Antigravity construya esta "Libreta Digital".
+* **El Problema Actual:** Tu aplicación es una *Single Page Application* (SPA) que usa "Estado" (`useState`) para cambiar de vistas. Cuando pasas de *Cursos* a *Materias*, la URL del navegador sigue siendo la misma (ej. `localhost:5173`). Para el navegador, **nunca cambiaste de página**. Por eso, cuando presionas "Atrás" en el celular o en el navegador, te saca de la app, porque el navegador piensa: *"El usuario no ha navegado a ningún lado dentro de este sitio, así que quiere salir"*.
+* **La Solución:** Necesitamos manipular la **History API** del navegador. Básicamente, cada vez que entres a un Curso o Materia, le diremos al navegador: *"Oye, anota esto en el historial como si fuera una página nueva"*. Así, cuando presiones "Atrás", el navegador nos avisará y nosotros capturaremos ese evento para volver al estado anterior (cerrar la materia) en lugar de cerrar la app.
 
 ---
 
-### Prompt para Antigravity
+### 🚀 El Prompt para Antigravity
 
-**Rol:** Desarrollador Senior Frontend (React) con experiencia en EdTech.
+Este prompt le pide a la IA tres cosas puntuales:
 
-**Objetivo:** Implementar la vista avanzada de gestión de estudiantes (`StudentManager`) con ordenamiento, conteo y un modal de "Expediente Académico" detallado.
+1. **Integrar el Selector de Exámenes** (La entidad intermedia que creamos conceptualmente).
+2. **Hacer todo "Mobile First"** (Responsivo para celulares).
+3. **Implementar un Hook de Navegación** para que el botón físico de "Atrás" funcione.
 
-**Requerimientos de UI y Lógica (Paso a Paso):**
-
-**1. Gestión de la Lista (Sorting & Counting):**
-
-* En `StudentManager.tsx`, antes de renderizar la lista, implementa una lógica de ordenamiento:
-* Asume que el formato del nombre es "Nombres Apellidos" o "Apellidos Nombres". Intenta detectar el apellido (última palabra) para ordenar de A-Z.
-
-
-* **Contador:** Muestra un encabezado claro: *"Total Estudiantes: {students.length}"*.
-* **Grid:** Renderiza las tarjetas de estudiantes. En cada tarjeta, añade un número índice (1, 2, 3...) en una esquina visible para enumerarlos según el orden de lista.
-
-**2. Modal de Expediente Académico (`StudentReportModal`):**
-
-* Crea un nuevo componente `StudentReportModal`.
-* **Trigger:** Al hacer clic en una tarjeta de estudiante, abre este modal.
-* **Lógica de Agrupación (Crucial):**
-* Recibe todas las `submissions` del estudiante.
-* Agrupa las notas por `subjectId` (Materia).
-* Calcula el **Promedio por Materia**.
-* Calcula el **Promedio General (Global)**.
-
-
-
-**3. Diseño del Modal (Estilo "Boleta de Calificaciones"):**
-
-* **Header:**
-* Avatar grande con iniciales.
-* Nombre Completo.
-* **Badge de Promedio Global:** Grande. Si es < 7 (Rojo), si es >= 7 (Verde).
-
-
-* **Lista de Materias (Acordeón o Tarjetas):**
-* Por cada materia, muestra una tarjeta con borde de color (según el promedio de la materia).
-* **Título:** Nombre de la Materia (ej: "Matemáticas").
-* **Derecha:** Promedio de la materia (ej: "8.50").
-* **Contenido:** Una tabla pequeña o lista con:
-* *Nombre del Examen* (si existe `examId`, busca su nombre, si no, usa "Evaluación").
-* *Nota* (ej: 10/10).
-* *Fecha*.
-
-
-
-
-
-**4. Interacciones:**
-
-* Asegúrate de que el modal tenga un botón claro de "Cerrar".
-* Si el estudiante no tiene notas en una materia, muestra "Sin registros" pero lista la materia para que el docente sepa que falta data.
-
-**Consideraciones Técnicas:**
-
-* Para obtener los nombres de las materias y exámenes, asegúrate de pasar los arrays de `subjects` y `exams` al modal, o usa un hook para buscarlos por ID.
-* Usa Tailwind CSS para que se vea limpio y profesional (sombras suaves `shadow-lg`, bordes redondeados `rounded-2xl`).
+Copia y pega esto:
 
 ---
 
-### ¿Por qué te va a gustar esto?
+**Rol:** Eres un Desarrollador Frontend Senior experto en React, UX Móvil y History API.
 
-Cuando le des clic a "Juan Pérez", no verás un desorden. Verás:
+**Objetivos:**
 
-* **Matemáticas: 5/10 (Reprobado)** 🔴
-* *Examen 1:* 4/10
-* *Examen 2:* 6/10
+1. Integrar la selección de **Exámenes** en el flujo principal.
+2. Hacer que la interfaz sea totalmente **Responsiva (Mobile-First)**.
+3. Implementar **Manejo del Historial del Navegador** para que el botón "Atrás" del celular/navegador funcione correctamente.
+
+**Instrucciones Técnicas (Paso a Paso):**
+
+**1. Flujo de Navegación y Botón "Atrás" (History API):**
+
+* **Problema:** Actualmente la navegación es solo por estado (`useState`). Al presionar "Atrás" en el navegador, la app se cierra.
+* **Solución:** Implementa un `useEffect` en `App.tsx` que gestione el evento `window.onpopstate`.
+* Cuando el usuario seleccione un Curso, Materia o Examen, usa `window.history.pushState({}, '', '#curso/materia')`.
+* Escucha el evento `popstate`. Si el usuario presiona atrás:
+* Si está en `GradingView`, vuelve a `ExamSelector`.
+* Si está en `ExamSelector`, vuelve a `SubjectSelector`.
+* Si está en `SubjectSelector`, vuelve a `CourseSelector`.
 
 
-* **Lenguaje: 9/10 (Aprobado)** 🟢
-* *Ensayo:* 9/10
 
 
+* Asegúrate de que esto sincronice con los `setSelected...` de React.
 
-Así sabes exactamente dónde necesita ayuda el estudiante. ¡Pilas con ese prompt!
+**2. Implementación de `ExamSelector` (Nueva Pantalla):**
+
+* Crea el componente `components/ExamSelector.tsx`.
+* **Diseño:** Debe verse igual de bien que la lista de estudiantes. Usa un **Grid Responsivo** (`grid-cols-1 md:grid-cols-3`).
+* **Contenido de la Tarjeta de Examen:**
+* Icono de documento.
+* Nombre del Examen (ej. "Primer Parcial").
+* Fecha de creación.
+* **Estadísticas:** Muestra "Total Entregas: X" (Consulta rápida o prop).
+
+
+* **Acción:** Al hacer clic, lleva a la vista de Calificación (`GradingView`) cargando la rúbrica asociada.
+
+**3. Optimización Responsiva (UI Móvil):**
+
+* Revisa `App.tsx`, `SubjectSelector`, y `ExamSelector`.
+* Asegúrate de que los contenedores principales tengan `px-4` en móvil y `px-8` en desktop.
+* Los botones de acción (como "Crear Examen" o "Calificar") deben ser de **ancho completo (w-full)** en pantallas pequeñas (`sm:w-auto` en grandes) para facilitar el toque con el dedo.
+* En `StudentManager`, asegura que el modal ocupe casi toda la pantalla en móviles (`w-[95%]`) para aprovechar el espacio.
+
+**4. Ubicación de "Total de Estudiantes":**
+
+* En la vista de `ExamSelector`, agrega un resumen superior tipo Dashboard:
+* Tarjeta pequeña: "Total Estudiantes en Curso".
+* Tarjeta pequeña: "Exámenes Creados".
+
+
+* Esto cumple el requerimiento de tener la información visible antes de entrar a calificar.
+
+---
+
+### 💡 ¿Qué vas a conseguir con esto?
+
+1. **Sensación Nativa:** En tu celular, entrarás a "Matemáticas" -> "Parcial 1". Si le das al botón de atrás de tu Android/iPhone, volverás a "Matemáticas" suavemente, no te sacará de la app.
+2. **Uso con una mano:** Los botones importantes serán grandes en el celular, fáciles de tocar.
+3. **Orden:** Tendrás tus exámenes organizados en carpetas, y sabrás cuántos estudiantes hay antes de empezar a trabajar.
