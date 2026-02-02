@@ -4,7 +4,7 @@
 ![React](https://img.shields.io/badge/React%2018-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Firestore-039BE5?style=for-the-badge&logo=Firebase&logoColor=white)
-![Gemini AI](https://img.shields.io/badge/Gemini_1.5_Flash-8E75B2?style=for-the-badge&logo=google&logoColor=white)
+![Gemini AI](https://img.shields.io/badge/Gemini_2.5_Flash-8E75B2?style=for-the-badge&logo=google&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
 > **"Transformando la evaluación educativa mediante Inteligencia Artificial Generativa."**
@@ -27,7 +27,7 @@ El sistema organiza la información siguiendo un modelo relacional jerárquico e
 ### Flujo de Datos (Data Pipeline)
 1.  **Ingesta:** Captura de imágenes de exámenes físicos y conversión optimizada a Base64 en el cliente.
 2.  **Procesamiento:**
-    *   **OCR & Análisis:** El motor **Google Gemini 1.5 Flash** procesa la imagen para extraer texto manuscrito y evaluarlo contra parámetros estrictos definidos en la rúbrica.
+    *   **OCR & Análisis:** El motor **Google Gemini 2.5 Flash** procesa la imagen para extraer texto manuscrito y evaluarlo contra parámetros estrictos definidos en la rúbrica.
     *   **Identificación (Student Matching):** Algoritmo de distancia de Levenshtein para vincular automáticamente el nombre manuscrito con la base de datos de estudiantes registrados.
 3.  **Persistencia:** Almacenamiento transaccional en **Firestore** con listeners `onSnapshot` para sincronización bidireccional inmediata.
 4.  **Hidratación de Estado:** Sistema de enrutamiento basado en **Hash Navigation** (`#course/:id/subject/:id/exam/:id`) que permite deep-linking y recuperación de contexto ante recargas de página.
