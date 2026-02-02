@@ -9,7 +9,7 @@
 
 > **"Transformando la evaluación educativa mediante Inteligencia Artificial Generativa."**
 
-**H.A.C.A.** es una plataforma empresarial diseñada para modernizar el flujo de trabajo de calificación en instituciones educativas. Mediante la integración de modelos de lenguaje masivos (**LLMs**) y visión computacional, el sistema automatiza la transcripción, corrección y análisis de evaluaciones físicas manuscritas, garantizando consistencia, objetividad y eficiencia operativa.
+**H.A.C.A.** es un **Proyecto de Investigación Tecnológica** desarrollado para explorar la automatización del flujo de trabajo de calificación en instituciones educativas. Mediante la integración de modelos de lenguaje masivos (**LLMs**) y visión computacional, el sistema automatiza la transcripción, corrección y análisis de evaluaciones físicas manuscritas, garantizando consistencia, objetividad y eficiencia operativa.
 
 ---
 
@@ -69,7 +69,7 @@ El sistema organiza la información siguiendo un modelo relacional jerárquico e
 *   **Gestión de Estado Persistente:** Implementación robusta de `History API` para manejar la navegación del navegador (Atrás/Adelante) sin perder el contexto de la sesión de trabajo.
 *   **Interfaz Mobile-First:** Diseño UI/UX adaptativo desarrollado con **Tailwind CSS**, optimizado para tablets y dispositivos móviles, permitiendo a los docentes calificar desde cualquier lugar.
 *   **Dashboard Analítico en Tiempo Real:** Visualización de estadísticas de rendimiento (promedios, distribución de notas) calculadas al vuelo mediante agregaciones en Firestore.
-*   **Exportación Corporativa:** Generación de reportes detallados en formato CSV para integración con sistemas LMS o ERP externos.
+*   **Exportación de Datos:** Generación de reportes detallados en formato CSV para análisis posterior.
 
 ---
 
@@ -129,11 +129,11 @@ El sistema organiza la información siguiendo un modelo relacional jerárquico e
 
 ---
 
-## 📄 Licencia y Derechos
+## 📄 Propiedad Intelectual
 
-Este software es propiedad de **H.A.C.A. Systems**. Su uso, modificación y distribución están sujetos a los términos de la licencia propietaria interna.
+Este software forma parte del **Proyecto Final de Investigación (MEDINA)**. Su distribución y uso están restringidos al ámbito académico y de evaluación del proyecto.
 
 <div align="center">
   <br>
-  <sub>Copyright © 2024-2026 H.A.C.A. Todos los derechos reservados.</sub>
+  <sub>Copyright © 2024-2026. Todos los derechos reservados.</sub>
 </div>
