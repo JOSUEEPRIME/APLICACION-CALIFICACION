@@ -5,9 +5,10 @@ import SubmissionItem from './components/SubmissionItem';
 import DetailModal from './components/DetailModal';
 import Dashboard from './components/Dashboard';
 import CourseSelector from './components/CourseSelector';
-import SubjectSelector from './components/SubjectSelector'; // New import
+import SubjectSelector from './components/SubjectSelector';
+import ExamSelector from './components/ExamSelector'; // New import
 import StudentManager from './components/StudentManager';
-import { RubricConfig, StudentSubmission, GradingStatus, Course, Student, Subject } from './types';
+import { RubricConfig, StudentSubmission, GradingStatus, Course, Student, Subject, Exam } from './types';
 import { gradeSubmission } from './services/geminiService';
 import { downloadCSV, findBestStudentMatch } from './utils';
 import { BarChart2, Edit3, ArrowLeft, Users } from 'lucide-react';
@@ -21,9 +22,10 @@ export default function App() {
     language: 'spanish' // Default to Spanish
   });
 
-  // Course & Subject State
+  // Course & Subject & Exam State
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null); // New state
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null); // New state
 
   const [showStudentManager, setShowStudentManager] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
@@ -32,6 +34,13 @@ export default function App() {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
   const [isGrading, setIsGrading] = useState(false);
   const [currentView, setCurrentView] = useState<'grading' | 'dashboard'>('grading');
+
+  // Load Rubric from Exam when selected
+  useEffect(() => {
+    if (selectedExam) {
+      setRubric(selectedExam.rubricConfig);
+    }
+  }, [selectedExam]);
 
   // Sync Students for selected COURSE (Students belong to the course/grade, not just the subject)
   useEffect(() => {
@@ -43,21 +52,28 @@ export default function App() {
     }
   }, [selectedCourse]);
 
-  // Real-time sync with Firestore (filtered by SUBJECT)
+  // Real-time sync with Firestore (filtered by EXAM now)
   useEffect(() => {
-    if (selectedSubject) {
+    if (selectedExam) {
       const unsubscribe = subscribeToSubmissions((data) => {
-        setSubmissions(data);
-      }, selectedSubject.id); // Filter by Subject ID now
+        // Filter locally by examId since the service filters by subjectId generally or update service to filter by examId
+        // But for now, let's assume service is updated or we filter here.
+        // Actually, previous step updated subscribeToSubmissions but didn't change the query to filter by examId?
+        // Let's re-read the service update. Ah, I did not update the query in subscribeToSubmissions to filter by examId, only to RETURN extra field.
+        // So I should filter here for safety or update the service.
+        // Given complexity, let's filter client side or update service.
+        // Let's rely on filtering here for now:
+        setSubmissions(data.filter(s => s.examId === selectedExam.id));
+      }, selectedSubject?.id || null); //Still subscribe to subject, but we might want to change this later
       return () => unsubscribe();
     } else {
-      setSubmissions([]); // Clear submissions if no subject selected
+      setSubmissions([]); // Clear submissions if no exam selected
     }
-  }, [selectedSubject]);
+  }, [selectedExam, selectedSubject]);
 
   // Add new files to the list -> Upload to Firebase
   const handleUpload = useCallback(async (files: { name: string; data: string; mimeType: string }[]) => {
-    if (!selectedCourse || !selectedSubject) return;
+    if (!selectedCourse || !selectedSubject || !selectedExam) return;
 
     // Process uploads sequentially
     for (const f of files) {
@@ -66,14 +82,15 @@ export default function App() {
           fileName: f.name,
           mimeType: f.mimeType,
           courseId: selectedCourse.id,
-          subjectId: selectedSubject.id
+          subjectId: selectedSubject.id,
+          examId: selectedExam.id // <--- Pass examId
         }, f.data);
       } catch (error) {
         console.error("Upload failed", error);
         alert(`Error subiendo ${f.name}`);
       }
     }
-  }, [selectedCourse, selectedSubject]);
+  }, [selectedCourse, selectedSubject, selectedExam]);
 
   // Remove a submission -> Delete from Firebase
   const handleRemove = async (id: string) => {
@@ -89,6 +106,7 @@ export default function App() {
   // Trigger Grading Process
   const startGrading = async () => {
     // Validación
+    // Rubric is now loaded from Exam, so it should be there.
     const hasRubricContent = rubric.description.trim().length > 0 || (rubric.rubricFileData && rubric.rubricFileData.length > 0);
 
     if (!hasRubricContent) {
@@ -106,6 +124,7 @@ export default function App() {
         await updateSubmissionResult(sub.id, null, GradingStatus.PROCESSING);
 
         // 2. Grade directly using fileData (from Firestore doc)
+        // Use the current rubric state (which matches the exam)
         const result = await gradeSubmission(sub.fileData, sub.mimeType, rubric);
 
         // 3. Find Best Match for Student
@@ -179,11 +198,9 @@ export default function App() {
   }
 
   // 2. If course selected but NO subject selected, show subject selector
-  // Also pass onBack to clear selectedCourse
   if (!selectedSubject) {
     return (
       <>
-        {/* If user wants to manage students for the course, show manager */}
         {showStudentManager ? (
           <StudentManager
             isOpen={true}
@@ -197,15 +214,6 @@ export default function App() {
             onBack={() => setSelectedCourse(null)}
           />
         )}
-        {/* Small button to open student manager if not visible - actually maybe we should put this inside SubjectSelector? 
-           Ideally SubjectSelector should have a button "Manage Students for this Course". 
-           For now, let's keep it simple or verify if SubjectSelector has it.
-           Wait, SubjectSelector file I created DOES NOT have "Manage Students" button.
-           I should update SubjectSelector to include a button "Gestionar Estudiantes".
-           For now, I will render a Floating Action Button or similar if not in manager mode, or just render it conditionally.
-           
-           Actually, let's inject a "Gestionar Estudiantes" button into the SubjectSelector logic or wrapper.
-       */}
         {!showStudentManager && (
           <div className="fixed bottom-6 right-6 z-40">
             <button
@@ -221,7 +229,18 @@ export default function App() {
     );
   }
 
-  // 3. Main Grading Interface (Subject Selected)
+  // 3. If subject selected but NO exam selected, show exam selector
+  if (!selectedExam) {
+    return (
+      <ExamSelector
+        subjectId={selectedSubject.id}
+        onSelectExam={setSelectedExam}
+        onBack={() => setSelectedSubject(null)}
+      />
+    );
+  }
+
+  // 4. Main Grading Interface (Subject & Exam Selected)
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col font-sans">
       {/* Header */}
@@ -229,9 +248,9 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setSelectedSubject(null)}
+              onClick={() => setSelectedExam(null)}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
-              title="Volver a Materias"
+              title="Volver a Exámenes"
             >
               <ArrowLeft size={20} />
             </button>
