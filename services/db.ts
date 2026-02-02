@@ -65,6 +65,47 @@ export const createSubmission = async (submission: { fileName: string; mimeType:
     }
 };
 
+// Recalcular estadísticas del estudiante (Promedio y Conteo de Entregas)
+const recalculateStudentStats = async (studentId: string) => {
+    try {
+        // 1. Obtener todas las submissions COMPLETED de este estudiante
+        const q = query(
+            collection(db, SUBMISSIONS_COLLECTION),
+            where("matchedStudentId", "==", studentId),
+            where("status", "==", GradingStatus.COMPLETED)
+        );
+
+        // Usamos getDocs una sola vez para calcular (no necesitamos listener aquí)
+        // Import getDocs dynamically or ensure it is imported at the top
+        const { getDocs } = await import("firebase/firestore");
+        const querySnapshot = await getDocs(q);
+
+        const submissions = querySnapshot.docs.map(doc => doc.data() as StudentSubmission);
+
+        if (submissions.length === 0) {
+            // Si no hay submissions, reseteamos a 0
+            await updateDoc(doc(db, STUDENTS_COLLECTION, studentId), {
+                averageScore: 0,
+                submissionCount: 0
+            });
+            return;
+        }
+
+        // 2. Calcular promedio
+        const totalScore = submissions.reduce((sum, sub) => sum + (sub.result?.score || 0), 0);
+        const averageScore = totalScore / submissions.length;
+
+        // 3. Actualizar documento del estudiante
+        await updateDoc(doc(db, STUDENTS_COLLECTION, studentId), {
+            averageScore: averageScore,
+            submissionCount: submissions.length
+        });
+
+    } catch (error) {
+        console.error("Error recalculating student stats:", error);
+    }
+};
+
 // Actualizar resultado de calificación
 export const updateSubmissionResult = async (id: string, result: any, status: GradingStatus, matchedStudentId?: string) => {
     const docRef = doc(db, SUBMISSIONS_COLLECTION, id);
@@ -77,6 +118,11 @@ export const updateSubmissionResult = async (id: string, result: any, status: Gr
         updateData.matchedStudentId = matchedStudentId;
     }
     await updateDoc(docRef, updateData);
+
+    // Si hay un estudiante vinculado, recalculamos sus estadísticas inmediatamente
+    if (matchedStudentId) {
+        await recalculateStudentStats(matchedStudentId);
+    }
 };
 
 // Eliminar entrega

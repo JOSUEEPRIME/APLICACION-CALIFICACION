@@ -38,8 +38,13 @@ const StudentCard: React.FC<{ student: Student; onDelete: (id: string) => void; 
         }
     };
 
+    const getBorderColor = () => {
+        if (student.averageScore === undefined || student.averageScore === 0) return 'border-gray-200';
+        return student.averageScore >= 7 ? 'border-green-300 ring-1 ring-green-50' : 'border-amber-300 ring-1 ring-amber-50';
+    };
+
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 transition-all hover:shadow-md flex flex-col justify-between">
+        <div className={`bg-white rounded-xl shadow-sm border ${getBorderColor()} p-4 transition-all hover:shadow-md flex flex-col justify-between`}>
             <div className="flex justify-between items-start mb-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getRandomColor(student.name)}`}>
                     {getInitials(student.name)}
@@ -83,10 +88,12 @@ const StudentCard: React.FC<{ student: Student; onDelete: (id: string) => void; 
                     <CheckCircle size={14} className={student.submissionCount ? "text-green-500" : "text-gray-300"} />
                     <span>{student.submissionCount || 0} Exámenes</span>
                 </div>
-                {student.averageScore !== undefined && (
+                {student.averageScore !== undefined && student.averageScore > 0 ? (
                     <span className={`font-bold ${student.averageScore >= 7 ? 'text-green-600' : 'text-amber-600'}`}>
                         {student.averageScore.toFixed(1)}/10
                     </span>
+                ) : (
+                    <span className="text-gray-400 italic">Sin notas</span>
                 )}
             </div>
         </div>
