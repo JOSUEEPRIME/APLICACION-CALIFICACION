@@ -11,9 +11,10 @@ import {
     serverTimestamp,
     deleteDoc,
     where,
-    writeBatch
+    writeBatch,
+    getDoc
 } from "firebase/firestore";
-import { StudentSubmission, GradingStatus, Course, Student, Subject } from "../types";
+import { StudentSubmission, GradingStatus, Course, Student, Subject, Exam } from "../types";
 
 // Nombres de colecciones
 // Nombres de colecciones
@@ -339,4 +340,45 @@ export const subscribeToSubjects = (courseId: string, callback: (data: Subject[]
         })) as Subject[];
         callback(subjects);
     });
+};
+
+// --- Hydration Helpers ---
+
+export const getCourse = async (id: string): Promise<Course | null> => {
+    try {
+        const docSnap = await getDoc(doc(db, COURSES_COLLECTION, id));
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() } as Course;
+        }
+        return null;
+    } catch (e) {
+        console.error("Error fetching course", e);
+        return null;
+    }
+};
+
+export const getSubject = async (id: string): Promise<Subject | null> => {
+    try {
+        const docSnap = await getDoc(doc(db, SUBJECTS_COLLECTION, id));
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() } as Subject;
+        }
+        return null;
+    } catch (e) {
+        console.error("Error fetching subject", e);
+        return null;
+    }
+};
+
+export const getExam = async (id: string): Promise<Exam | null> => {
+    try {
+        const docSnap = await getDoc(doc(db, "exams", id));
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() } as any as Exam;
+        }
+        return null;
+    } catch (e) {
+        console.error("Error fetching exam", e);
+        return null;
+    }
 };

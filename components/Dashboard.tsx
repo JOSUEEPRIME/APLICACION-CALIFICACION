@@ -431,17 +431,19 @@ const getScoreColor = (score: number) => {
 const Bar = ({ label, count, total, color }: { label: string, count: number, total: number, color: string }) => {
   const heightPercentage = total > 0 ? (count / total) * 100 : 0;
   // Asegurar una altura mínima para visualización si hay datos
-  const visualHeight = count > 0 ? Math.max(heightPercentage, 10) : 0;
+  const visualHeight = count > 0 ? Math.max(heightPercentage, 5) : 0;
 
   return (
-    <div className="flex-1 flex flex-col justify-end items-center group">
-      <div className="mb-2 opacity-0 group-hover:opacity-100 transition text-xs font-bold text-slate-600">
+    <div className="flex-1 flex flex-col justify-end items-center group h-full">
+      <div className="mb-2 text-xs font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
         {count} alum. ({heightPercentage.toFixed(0)}%)
       </div>
-      <div
-        className={`w-full max-w-[60px] rounded-t-md transition-all duration-500 ${color} relative`}
-        style={{ height: `${visualHeight}%` }}
-      >
+      <div className="w-full flex-1 flex items-end justify-center">
+        <div
+          className={`w-full max-w-[60px] rounded-t-lg transition-all duration-500 ${color} relative shadow-sm`}
+          style={{ height: `${visualHeight}%`, minHeight: count > 0 ? '4px' : '0' }}
+        >
+        </div>
       </div>
       <div className="mt-2 text-xs text-slate-500 font-medium text-center">{label}</div>
     </div>

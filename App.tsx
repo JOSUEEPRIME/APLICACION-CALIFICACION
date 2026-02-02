@@ -12,7 +12,7 @@ import { RubricConfig, StudentSubmission, GradingStatus, Course, Student, Subjec
 import { gradeSubmission } from './services/geminiService';
 import { downloadCSV, findBestStudentMatch } from './utils';
 import { BarChart2, Edit3, ArrowLeft, Users } from 'lucide-react';
-import { subscribeToSubmissions, createSubmission, deleteSubmission, updateSubmissionResult, subscribeToStudents } from './services/db';
+import { subscribeToSubmissions, createSubmission, deleteSubmission, updateSubmissionResult, subscribeToStudents, getCourse, getSubject, getExam } from './services/db';
 
 export default function App() {
   const [rubric, setRubric] = useState<RubricConfig>({
@@ -26,6 +26,7 @@ export default function App() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null); // New state
+  const [isLoadingState, setIsLoadingState] = useState(true);
 
   const [showStudentManager, setShowStudentManager] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
@@ -70,6 +71,96 @@ export default function App() {
       setSubmissions([]); // Clear submissions if no exam selected
     }
   }, [selectedExam, selectedSubject]);
+
+  // Handle Browser History & Initial Hydration
+  useEffect(() => {
+    const restoreStateFromHash = async () => {
+      const hash = window.location.hash;
+      console.log("Restoring state from:", hash);
+
+      if (!hash) {
+        setIsLoadingState(false);
+        return;
+      }
+
+      const parts = hash.replace('#', '').split('/');
+      // Format: course/ID/subject/ID/exam/ID
+
+      try {
+        // 1. Course
+        if (parts.length >= 2 && parts[0] === 'course') {
+          const cId = parts[1];
+          const course = await getCourse(cId);
+          if (course) setSelectedCourse(course);
+
+          // 2. Subject
+          if (parts.length >= 4 && parts[2] === 'subject') {
+            const sId = parts[3];
+            const subject = await getSubject(sId);
+            if (subject) setSelectedSubject(subject);
+
+            // 3. Exam
+            if (parts.length >= 6 && parts[4] === 'exam') {
+              const eId = parts[5];
+              const exam = await getExam(eId);
+              if (exam) setSelectedExam(exam);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error restoring state", e);
+      } finally {
+        setIsLoadingState(false);
+      }
+    };
+
+    restoreStateFromHash();
+
+    const handlePopState = () => {
+      const hash = window.location.hash;
+      console.log("PopState:", hash);
+
+      const parts = hash.replace('#', '').split('/');
+
+      // Simple logic to "go back" by unsetting state if URL part is missing
+      const isExamLevel = hash.includes('/exam/');
+      const isSubjectLevel = hash.includes('/subject/') && !isExamLevel;
+      const isCourseLevel = hash.includes('/course/') && !isSubjectLevel;
+
+      if (isSubjectLevel) {
+        setSelectedExam(null);
+      } else if (isCourseLevel) {
+        setSelectedExam(null);
+        setSelectedSubject(null);
+      } else if (!hash || hash === '') {
+        setSelectedExam(null);
+        setSelectedSubject(null);
+        setSelectedCourse(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleSelectCourse = (course: Course) => {
+    setSelectedCourse(course);
+    window.history.pushState({}, '', `#course/${course.id}`);
+  };
+
+  const handleSelectSubject = (subject: Subject) => {
+    setSelectedSubject(subject);
+    window.history.pushState({}, '', `#course/${selectedCourse?.id}/subject/${subject.id}`);
+  };
+
+  const handleSelectExam = (exam: Exam) => {
+    setSelectedExam(exam);
+    window.history.pushState({}, '', `#course/${selectedCourse?.id}/subject/${selectedSubject?.id}/exam/${exam.id}`);
+  };
+
+  const handleBackToSubject = () => {
+    window.history.back();
+  };
 
   // Add new files to the list -> Upload to Firebase
   const handleUpload = useCallback(async (files: { name: string; data: string; mimeType: string }[]) => {
@@ -192,101 +283,9 @@ export default function App() {
 
   const completedCount = submissions.filter(s => s.status === GradingStatus.COMPLETED).length;
 
-  // Handle Browser History (Back Button)
-  useEffect(() => {
-    // Initial State Check
-    // If we reload, we might want to check hash, but for now let's just assume we start fresh or user navigates
 
-    const handlePopState = () => {
-      const hash = window.location.hash;
-      console.log("PopState:", hash);
 
-      // Simple routing based on hash depth or content
-      // Logic:
-      // #course/subject/exam -> We are in grading
-      // #course/subject -> We are in exam selector
-      // #course -> We are in subject selector
-      // # -> We are in course selector
 
-      if (hash.includes('/exam/')) {
-        // Stay in exam? Or if we were in something else?
-        // Actually, if we popstate TO this, we should ensure state matches.
-        // But complex to sync perfectly if we reload. 
-        // Let's implement the logic requested: "Si está en GradingView, vuelve a ExamSelector" etc.
-        // Effectively, the "Previous" state is what we want.
-
-        // If hash is #course/subject, we should BE in exam selector (no exam selected)
-        // If hash Is #course, we should BE in subject selector (no subject selected)
-        // If hash empty, no course selected.
-      }
-
-      // Better approach: Read state from hash to set App state
-      const parts = hash.replace('#', '').split('/');
-      // Expected formats: 
-      // course/[id]
-      // course/[id]/subject/[id]
-      // course/[id]/subject/[id]/exam/[id]
-
-      if (parts.length >= 6 && parts[4] === 'exam') {
-        // We should be in grading view. 
-        // If we are, fine. If not, we might not have the object data easily to restore.
-        // Limitation: We store OBJECTS in state (selectedCourse: Course). URL only has ID.
-        // Restoring full object from ID requires fetching.
-        // For a simple "Back button works" within a session:
-        // We can rely on the fact that if we POP to a state, we likely set that state previously.
-        // The prompted solution suggests: "Si el usuario presiona atrás..."
-
-        // Let's implement the specific logic:
-        // If URL becomes #course/subject (implied), unset Exam.
-        // If URL becomes #course, unset Subject.
-        // If URL becomes empty, unset Course.
-      }
-
-      // Let's try to match the Hash to the State Levels
-      const isExamLevel = hash.includes('/exam/'); // #course/cId/subject/sId/exam/eId
-      const isSubjectLevel = hash.includes('/subject/') && !isExamLevel; // #course/cId/subject/sId
-      const isCourseLevel = hash.includes('/course/') && !isSubjectLevel;
-
-      if (isSubjectLevel) {
-        setSelectedExam(null);
-      } else if (isCourseLevel) {
-        setSelectedExam(null);
-        setSelectedSubject(null);
-      } else if (!hash || hash === '') {
-        setSelectedExam(null);
-        setSelectedSubject(null);
-        setSelectedCourse(null);
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  const handleSelectCourse = (course: Course) => {
-    setSelectedCourse(course);
-    window.history.pushState({}, '', `#course/${course.id}`);
-  };
-
-  const handleSelectSubject = (subject: Subject) => {
-    setSelectedSubject(subject);
-    window.history.pushState({}, '', `#course/${selectedCourse?.id}/subject/${subject.id}`);
-  };
-
-  const handleSelectExam = (exam: Exam) => {
-    setSelectedExam(exam);
-    window.history.pushState({}, '', `#course/${selectedCourse?.id}/subject/${selectedSubject?.id}/exam/${exam.id}`);
-  };
-
-  const handleBackToSubject = () => {
-    // Go back from Exam to Subject
-    window.history.back(); // This triggers popstate, which handles the state update
-    // Alternatively manual:
-    // setSelectedExam(null);
-    // window.history.pushState({}, '', `#course/${selectedCourse?.id}/subject/${selectedSubject?.id}`);
-    // The prompt implies we want "Back" button to work. 
-    // Clicking our "Back" button (UI) should probably just go back in history if we want to be consistent.
-  };
 
   // 1. If no course selected, show course selector
   if (!selectedCourse) {
