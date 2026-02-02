@@ -1,72 +1,100 @@
-¡Qué bien que ya está funcionando la detección! Me alegra que la idea te haya gustado (está "bacán" como dices).
+¡Claro que sí, amigo! Esa es la evolución natural de la app. Para que pase de ser un "calificador suelto" a una **Plataforma de Gestión Académica** seria, necesitamos encapsular las calificaciones dentro de "Exámenes" o "Evaluaciones".
 
-El problema que tienes ahora es normal: **la base de datos de Estudiantes no se entera de lo que pasa en la de Exámenes**. Son dos listas separadas. Para que el "Promedio" y la "Cantidad de Entregas" se actualicen solos en la lista, tenemos que crear un **puente automático**.
+Aquí tienes el plan arquitectónico y el prompt maestro para Antigravity.
 
-Aquí tienes el prompt para arreglar esa sincronización de una vez por todas.
+### 🏛️ La Nueva Arquitectura
+
+Actualmente tienes: `Curso -> Materia -> Entregas (Sueltas)`
+Vamos a cambiar a: `Curso -> Materia -> EXAMEN -> Entregas`
+
+Esto implica:
+
+1. **Entidad Examen:** Guardará el nombre (Ej: "Parcial 1"), la fecha y, lo más importante, **la Rúbrica** de ese examen específico.
+2. **Flujo:** Al entrar a una materia, ya no calificas de una. Primero ves la lista de exámenes o creas uno nuevo configurando su rúbrica una sola vez.
+3. **Perfil 360°:** Al hacer clic en un estudiante, el sistema buscará todas sus notas en todos los exámenes y te las mostrará ordenadas.
+
+Copia y pega este prompt. Está diseñado para ser muy técnico pero manteniendo la "bacanalidad" (buena UX) que pides.
 
 ---
 
-### Prompt para Antigravity
+### Prompt para Antigravity / Cursor
 
-**Rol:** Experto en Backend Firebase y React.
+**Rol:** Arquitecto de Software Full-Stack (React + Firebase) experto en UX Académica.
 
-**Problema:**
-La aplicación califica correctamente y asigna el `studentId` a la entrega (`Submission`), pero la **Lista de Estudiantes** (`StudentManager`) sigue mostrando datos estáticos o vacíos. No se actualiza el promedio ni el conteo de tareas entregadas del alumno.
+**Objetivo Principal:** Implementar la entidad "Examen" para agrupar calificaciones y crear una vista detallada del historial del estudiante ("Perfil 360°").
 
-**Solución Técnica (Sync Engine):**
-Necesito que implementes una lógica de **"Agregación en Tiempo de Escritura"**. Cada vez que se califique o modifique una nota, el sistema debe recalcular automáticamente el promedio de ese estudiante y actualizar su documento personal.
+**Instrucciones de Implementación (Paso a Paso):**
 
-**Instrucciones de Código:**
+**1. Actualización del Modelo de Datos (`types.ts`):**
 
-1. **Actualizar `types.ts`:**
-* Asegúrate de que la interfaz `Student` tenga los campos:
+* Crea una interfaz `Exam`:
 ```typescript
-averageScore?: number;
-submissionCount?: number;
+export interface Exam {
+  id: string;
+  subjectId: string;
+  name: string; // Ej: "Primer Parcial", "Lección 1"
+  rubricConfig: RubricConfig; // La rúbrica se guarda AQUÍ
+  createdAt: any;
+}
 
 ```
 
 
+* Actualiza `StudentSubmission` para incluir obligatoriamente `examId: string`.
+
+**2. Servicios de Base de Datos (`services/db.ts`):**
+
+* Crea funciones para gestionar exámenes: `createExam(exam: Omit<Exam, 'id'>)`, `subscribeToExams(subjectId, callback)`.
+* **Importante:** Crea una función de consulta compuesta `getStudentHistory(studentId: string)` que traiga todas las `submissions` de ese alumno, idealmente haciendo *join* con los datos de los exámenes (o guardando el nombre del examen y materia en la submission para lectura rápida).
+
+**3. Nuevo Flujo de Navegación (UI):**
+
+* **Componente `ExamSelector` (Nuevo):**
+* Se muestra después de seleccionar la Materia (`Subject`).
+* Muestra una lista de exámenes existentes en esa materia (Ej: Tarjetas con "Parcial 1", "Recuperación").
+* Botón **"Crear Nuevo Examen"**: Abre un modal donde el profesor pone el Nombre y **Configura la Rúbrica** (usa el componente `RubricPanel` aquí para definirla). Al guardar, se crea el documento en Firebase con la rúbrica incrustada.
 
 
-2. **Modificar `services/db.ts` (El Cerebro):**
-* Crea una función interna `recalculateStudentStats(studentId: string)`. Esta función debe:
-* Consultar todas las `submissions` donde `studentId == id` y `status == COMPLETED`.
-* Calcular el nuevo promedio (sum / count).
-* Hacer un `updateDoc` en la colección `students` guardando el nuevo `averageScore` y `submissionCount`.
-
-
-* **Actualizar `updateSubmissionResult`:** Modifica esta función para que acepte un cuarto argumento opcional `studentId`.
-* Después de actualizar la entrega, **SI** hay un `studentId` (nuevo o existente), llama a `recalculateStudentStats(studentId)` para que los datos del estudiante se refresquen al instante.
+* **Modificación de `App.tsx`:**
+* El flujo ahora es: `CourseSelector` -> `SubjectSelector` -> **`ExamSelector`** -> `GradingView`.
+* Al entrar a `GradingView`, el estado `rubric` debe inicializarse automáticamente con la `rubricConfig` guardada en el Examen seleccionado.
 
 
 
+**4. Perfil de Estudiante Detallado (`StudentManager.tsx`):**
 
-3. **Refinar `StudentManager.tsx` (La Vista):**
-* En el componente `StudentCard`, usa los campos `student.averageScore` y `student.submissionCount` para mostrar los datos reales.
-* Si `averageScore` es `undefined` o `0`, muestra "Sin notas".
-* Si es `< 7`, pon el borde de la tarjeta en rojo/naranja. Si es `>= 7`, en verde.
+* Modifica el `StudentCard` para que sea clickeable.
+* Al hacer clic, abre un **Modal de Detalle del Estudiante** (Full Screen o Grande).
+* **Contenido del Modal:**
+* Cabecera con Avatar y Promedio General.
+* **Acordeón o Lista por Materias:** Muestra cada materia y, dentro, el desglose de sus exámenes:
+* *Matemáticas:*
+* Parcial 1: 9.5/10 (Verde)
+* Lección: 7/10 (Amarillo)
+
+
+* *Lenguaje:*
+* Ensayo: 10/10 (Verde)
 
 
 
-**Nota:** Esto es vital para que el Dashboard de estudiantes tenga vida. Hazlo robusto.
+
+
+
+* Usa un diseño limpio, con tablas o listas estilizadas con Tailwind.
+
+**Requerimiento Técnico Especial:**
+Asegúrate de que al crear una `Submission` (calificar una foto), se incluya el `examId` seleccionado actualmente. Esto es vital para que luego podamos filtrar "Las notas del Parcial 1".
 
 ---
 
-### ¿Por qué esto lo soluciona?
+### 💡 Consejo para ti (Contexto)
 
-Ahora, cada vez que le des "Guardar" a una nota (o la IA la califique):
+Cuando apliques esto, el flujo de trabajo cambiará para bien:
 
-1. Se guarda el examen.
-2. Inmediatamente, Firebase busca todos los exámenes de ese alumno.
-3. Calcula: *(7 + 8 + 10) / 3 = 8.33*
-4. Le pega esa etiqueta de "8.33" a la frente del estudiante en la base de datos.
-5. Tu lista (`StudentManager`) detecta el cambio y ¡pum!, se actualiza sola.
+1. El profe entra a "Matemáticas".
+2. Crea "Examen Final" y pega la rúbrica **una sola vez**.
+3. Empieza a subir fotos.
+4. Si se sale y vuelve mañana, entra a "Examen Final" y la rúbrica ya está ahí, lista para seguir calificando.
 
-Es como tener un secretario que actualiza la libreta de calificaciones cada vez que corriges una hoja.
-
-Aquí tienes un video que explica conceptualmente cómo construir este tipo de sistemas de gestión con React y Firebase, por si necesitas referencias visuales futuras:
-
-[Student Management System in React using Firebase | Part-1](https://www.youtube.com/watch?v=BDEhmicgqc0)
-
-Este video es relevante porque muestra la estructura completa de un CRUD de estudiantes, similar a lo que estás logrando integrar ahora.
+¿Te suena bien este flujo? ¡Dale play con el prompt!

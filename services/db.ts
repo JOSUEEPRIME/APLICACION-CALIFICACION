@@ -39,8 +39,8 @@ export interface DBStudent extends Omit<Student, 'id'> {
 }
 
 // Crear nueva entrega (Ahora guarda el base64 directamente en Firestore)
-// courseId and subjectId are now required
-export const createSubmission = async (submission: { fileName: string; mimeType: string, courseId: string, subjectId: string }, fileData: string) => {
+// courseId, subjectId, and examId are now required
+export const createSubmission = async (submission: { fileName: string; mimeType: string, courseId: string, subjectId: string, examId: string }, fileData: string) => {
     try {
         // IMPORTANTE: Guardamos el base64 directamente en el documento. 
         // Esto es lo que el usuario pidió ("solo usamos firestore").
@@ -53,6 +53,7 @@ export const createSubmission = async (submission: { fileName: string; mimeType:
             status: GradingStatus.PENDING,
             courseId: submission.courseId,
             subjectId: submission.subjectId,
+            examId: submission.examId, // <--- Nueva relación con examen
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         };
@@ -161,6 +162,7 @@ export const subscribeToSubmissions = (callback: (data: StudentSubmission[]) => 
                 error: data.error,
                 courseId: data.courseId,
                 subjectId: data.subjectId,
+                examId: data.examId,
                 matchedStudentId: data.matchedStudentId
             } as StudentSubmission;
         });
@@ -250,6 +252,61 @@ export const subscribeToStudents = (courseId: string, callback: (data: Student[]
         })) as Student[];
         callback(students);
     });
+};
+
+// --- Exam Management ---
+
+export const createExam = async (exam: { name: string, subjectId: string, rubricConfig: any }) => {
+    try {
+        const docData = {
+            name: exam.name,
+            subjectId: exam.subjectId,
+            rubricConfig: exam.rubricConfig,
+            createdAt: serverTimestamp()
+        };
+        const docRef = await addDoc(collection(db, "exams"), docData);
+        return { id: docRef.id, ...docData };
+    } catch (error) {
+        console.error("Error creating exam:", error);
+        throw error;
+    }
+};
+
+export const subscribeToExams = (subjectId: string, callback: (data: any[]) => void) => {
+    const q = query(
+        collection(db, "exams"),
+        where("subjectId", "==", subjectId),
+        orderBy("createdAt", "desc")
+    );
+    return onSnapshot(q, (snapshot) => {
+        const exams = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        callback(exams);
+    });
+};
+
+export const getStudentHistory = async (studentId: string) => {
+    try {
+        // Query COMPLETED submissions for this student
+        const q = query(
+            collection(db, SUBMISSIONS_COLLECTION),
+            where("matchedStudentId", "==", studentId),
+            orderBy("createdAt", "desc")
+        );
+        const { getDocs } = await import("firebase/firestore");
+        const snapshot = await getDocs(q);
+
+        // Fetch all exams to map names (optimization: fetch unique examIds only or all exams once)
+        // For simplicity, we might just assume the UI will handle mapping or we fetch exams here.
+        // Let's just return submissions for now. The UI can match examId -> ExamName.
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    } catch (error) {
+        console.error("Error getting student history:", error);
+        return [];
+    }
 };
 
 // --- Subject Management ---

@@ -25,6 +25,14 @@ export interface Student {
   submissionCount?: number;
 }
 
+export interface Exam {
+  id: string;
+  subjectId: string;
+  name: string; // Ej: "Primer Parcial", "Lección 1"
+  rubricConfig: RubricConfig; // La rúbrica se guarda AQUÍ
+  createdAt: any;
+}
+
 export interface StudentSubmission {
   id: string;
   fileName: string;
@@ -35,6 +43,7 @@ export interface StudentSubmission {
   error?: string;
   courseId: string;
   subjectId: string; // Nueva relación
+  examId: string; // <--- Linked to Exam
   matchedStudentId?: string;
 }
 
