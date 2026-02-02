@@ -52,9 +52,8 @@ export const findBestMatch = (ocrName: string, studentList: { id: string; name: 
 
   let bestMatchId: string | undefined = undefined;
   let minDistance = Infinity;
-  // Threshold can be adjusted. If name is ~10 chars, a distance of 3-4 might be acceptable.
-  // Using a relative threshold based on string length is better.
-  const thresholdRatio = 0.4; // 40% difference allowed
+  // Threshold can be adjusted. A ratio of 0.3 implies 70% similarity.
+  const thresholdRatio = 0.3;
 
   const normalizedOcrName = ocrName.toLowerCase().trim();
 
@@ -74,3 +73,5 @@ export const findBestMatch = (ocrName: string, studentList: { id: string; name: 
 
   return bestMatchId;
 };
+
+export const findBestStudentMatch = findBestMatch;

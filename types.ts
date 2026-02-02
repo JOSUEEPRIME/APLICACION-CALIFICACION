@@ -21,6 +21,8 @@ export interface Student {
   id: string;
   name: string;
   courseId: string;
+  averageScore?: number;
+  submissionCount?: number;
 }
 
 export interface StudentSubmission {

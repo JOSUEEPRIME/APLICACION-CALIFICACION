@@ -174,6 +174,27 @@ export const addStudentsToCourse = async (courseId: string, studentNames: string
     }
 };
 
+// Update Student
+export const updateStudent = async (studentId: string, name: string) => {
+    try {
+        const docRef = doc(db, STUDENTS_COLLECTION, studentId);
+        await updateDoc(docRef, { name: name });
+    } catch (error) {
+        console.error("Error updating student:", error);
+        throw error;
+    }
+};
+
+// Delete Student
+export const deleteStudent = async (studentId: string) => {
+    try {
+        await deleteDoc(doc(db, STUDENTS_COLLECTION, studentId));
+    } catch (error) {
+        console.error("Error deleting student:", error);
+        throw error;
+    }
+};
+
 export const subscribeToStudents = (courseId: string, callback: (data: Student[]) => void) => {
     const q = query(collection(db, STUDENTS_COLLECTION), where("courseId", "==", courseId), orderBy("name", "asc"));
     return onSnapshot(q, (snapshot) => {

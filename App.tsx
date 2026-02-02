@@ -9,7 +9,7 @@ import SubjectSelector from './components/SubjectSelector'; // New import
 import StudentManager from './components/StudentManager';
 import { RubricConfig, StudentSubmission, GradingStatus, Course, Student, Subject } from './types';
 import { gradeSubmission } from './services/geminiService';
-import { downloadCSV, findBestMatch } from './utils';
+import { downloadCSV, findBestStudentMatch } from './utils';
 import { BarChart2, Edit3, ArrowLeft, Users } from 'lucide-react';
 import { subscribeToSubmissions, createSubmission, deleteSubmission, updateSubmissionResult, subscribeToStudents } from './services/db';
 
@@ -109,7 +109,7 @@ export default function App() {
         const result = await gradeSubmission(sub.fileData, sub.mimeType, rubric);
 
         // 3. Find Best Match for Student
-        const matchedId = findBestMatch(result.studentName, students);
+        const matchedId = findBestStudentMatch(result.studentName, students);
 
         // 4. Update result object with matched info if found (optional, but good for UI)
         if (matchedId) {
@@ -120,8 +120,6 @@ export default function App() {
         } else {
           // Si no hay coincidencia, marcar como no identificado en el nombre si se desea, 
           // o simplemente dejar el nombre OCR.
-          // El prompt decia: "Si no, marca como 'Estudiante no identificado'".
-          // Podemos forzar el nombre si es muy malo el OCR, pero dejemos el OCR por ahora para corrección manual.
         }
 
         // 5. Save result

@@ -1,109 +1,100 @@
-Skip to content
-JOSUEEPRIME
-APLICACION-CALIFICACION
-Repository navigation
-Code
-Issues
-Pull requests
-Actions
-Projects
-Wiki
-Security
-Insights
-Settings
-Deploy to Firebase Hosting on merge
-feat: Implement course and subject selection UI and database manageme… #19
-All jobs
-Run details
-Annotations
-1 error
-build_and_deploy
-failed 1 minute ago in 16s
-Search logs
-1s
-1s
-4s
-7s
-Run npm ci && npm run build
-npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+¡Entendido, "me pongo pilas"! Esta es la parte crítica donde transformamos la app de un simple "lector de exámenes" a una verdadera **plataforma de gestión escolar**.
 
-added 218 packages, and audited 219 packages in 5s
+Antes de darte el prompt, vamos a **planear la arquitectura** para que todo esté sincronizado (Lista, Calificación y Dashboard) sin romper lo que ya funciona.
 
-28 packages are looking for funding
-  run `npm fund` for details
+### 🧠 El Plan de "Sincronización Total"
 
-found 0 vulnerabilities
+Aquí está la lógica que le pediremos a Antigravity. Confírmame si estás de acuerdo con estos 3 pilares:
 
-> h.a.c.a.@0.0.0 build
-> vite build
+#### 1. La "Identidad Única" (Backend)
 
-vite v6.4.1 building for production...
+Actualmente, una calificación es solo un papel con un nombre escrito.
 
-/index.css doesn't exist at build time, it will remain unchanged to be resolved at runtime
-transforming...
-✓ 1727 modules transformed.
-✗ Build failed in 2.17s
-error during build:
-components/SubjectSelector.tsx (3:9): "subscribeToSubjects" is not exported by "services/db.ts", imported by "components/SubjectSelector.tsx".
-file: /home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/components/SubjectSelector.tsx:3:9
+* **El Cambio:** Ahora, cada examen calificado (`Submission`) tendrá un campo oculto `studentId` que lo conecta directamente con un estudiante de la base de datos.
+* **El Flujo:**
+1. OCR lee: "Juan Pére" (mal escrito).
+2. Sistema busca en la lista del curso.
+3. Sistema dice: "¿Quisiste decir **Juan Carlos Pérez**?" (Match 90%).
+4. Sistema guarda la nota NO en el aire, sino en el perfil de **Juan Carlos Pérez**.
 
-1: import React, *** useState, useEffect *** from 'react';
-2: import *** Course, Subject *** from '../types';
-3: import *** subscribeToSubjects, createSubject *** from '../services/db';
-            ^
-4: import *** Plus, Book, ArrowLeft *** from 'lucide-react';
 
-    at getRollupError (file:///home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
-    at error (file:///home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/node_modules/rollup/dist/es/shared/parseAst.js:397:42)
-    at Module.error (file:///home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/node_modules/rollup/dist/es/shared/node-entry.js:17022:16)
-    at Module.traceVariable (file:///home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/node_modules/rollup/dist/es/shared/node-entry.js:17478:29)
-    at ModuleScope.findVariable (file:///home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/node_modules/rollup/dist/es/shared/node-entry.js:15141:39)
-    at FunctionScope.findVariable (file:///home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
-    at FunctionBodyScope.findVariable (file:///home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
-    at ReturnValueScope.findVariable (file:///home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
-    at FunctionBodyScope.findVariable (file:///home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
-    at Identifier.bind (file:///home/runner/work/APLICACION-CALIFICACION/APLICACION-CALIFICACION/node_modules/rollup/dist/es/shared/node-entry.js:5462:40)
-Error: Process completed with exit code 1.
-0s
-0s
-0s
-0s
-El error es un **problema de importación** que está impidiendo que tu aplicación se construya (build).
 
-Según el log que compartiste, el error específico es:
-`"subscribeToSubjects" is not exported by "services/db.ts"`
+#### 2. La Nueva Vista de Estudiantes (UI "Cuadriculada")
 
-### ¿Qué significa esto?
+Adiós a la lista aburrida de texto. Vamos a pedir un diseño tipo **"Card Grid"** (Tarjetas).
 
-El archivo `components/SubjectSelector.tsx` está intentando importar una función llamada **`subscribeToSubjects`** desde el archivo `services/db.ts`, pero esa función **no existe** o no está exportada en ese archivo.
+* Cada tarjeta tendrá:
+* Avatar (Iniciales con colores).
+* Nombre Completo (Bien grande).
+* Estado: "Aprobado" / "Reprobado" (Basado en el promedio actual).
+* Badge de "Exámenes entregados: X".
+* Botón para ver su historial personal.
 
-Esto suele pasar cuando:
 
-1. Creaste el componente (`SubjectSelector`) pero olvidaste agregar la lógica correspondiente en la base de datos (`db.ts`).
-2. Guardaste el archivo del componente pero no guardaste o no hiciste *commit* de los cambios en `db.ts`.
-3. Hay un error de escritura (typo) en el nombre de la función.
 
-### ¿Cómo solucionarlo?
+#### 3. El Dashboard Sincronizado
 
-Tienes que ir al archivo `services/db.ts` y asegurarte de crear y exportar esa función. Debería verse similar a `subscribeToSubmissions` pero enfocada en las asignaturas (Subjects).
+El Dashboard ya no solo mostrará "exámenes sueltos". Ahora podrá agrupar por estudiante. Si Juan Pérez tiene 3 exámenes, el Dashboard mostrará su **promedio real**.
 
-Debería quedar algo así en `services/db.ts`:
+---
 
-```typescript
-// En services/db.ts
+### 🚀 El Prompt para Antigravity
 
-// ... tus otros imports ...
+Si estás de acuerdo con el plan, aquí tienes el prompt **maestro**. Está diseñado para ser muy específico con la UI (cuadrículas) y la lógica de "Matching" (vinculación).
 
-export const subscribeToSubjects = (courseId: string, callback: (data: Subject[]) => void) => {
-    // Tu lógica para obtener las asignaturas de firebase
-    // Ejemplo:
-    const q = query(collection(db, "subjects"), where("courseId", "==", courseId));
-    return onSnapshot(q, (snapshot) => {
-        const subjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
-        callback(subjects);
-    });
-};
+Copia y pega esto:
 
-```
+---
 
-Asegúrate también de que **`createSubject`** (que también aparece en el import de la línea 3) esté definida y exportada en ese mismo archivo, ya que es probable que te dé el mismo error para esa función una vez corrijas esta.
+**Rol:** Eres un Experto en UI/UX Educativa y Arquitecto de Software en React/Firebase.
+
+**Objetivo:** Sincronizar la lista de estudiantes con el proceso de calificación y mejorar drásticamente la interfaz de gestión de alumnos.
+
+**Contexto:**
+Ya tenemos la carga de cursos y estudiantes (nombres simples). Ahora necesitamos que el sistema sea visualmente profesional y que los exámenes se vinculen inteligentemente a los estudiantes registrados.
+
+**Instrucciones de Ejecución (Paso a Paso):**
+
+1. **Lógica de "Smart Matching" (Vinculación Inteligente):**
+* En `utils.ts`, crea una función robusta `findBestStudentMatch(ocrName, studentList)` usando el algoritmo de *Levenshtein Distance* (o similitud de Jaro-Winkler si prefieres).
+* **Regla:** Si la similitud es > 0.7 (70%), sugiere el estudiante automáticamente.
+* En el momento que `geminiService` devuelve la nota y el nombre detectado, el sistema debe ejecutar esta función inmediatamente para intentar asignar un `studentId` a la entrega (`Submission`).
+
+
+2. **Transformación UI: Lista de Estudiantes (Grid View):**
+* Modifica el componente donde se listan los estudiantes (`StudentManager` o similar).
+* **NO uses una lista simple `<ul>`.** Implementa un diseño de **Grid (Grilla) Responsive** usando Tailwind CSS (ej. `grid-cols-1 md:grid-cols-3 gap-4`).
+* Crea un sub-componente `StudentCard` que muestre:
+* Un avatar circular con las iniciales del estudiante y un color de fondo único (generado a partir de su nombre).
+* Nombre completo destacado.
+* Indicadores visuales (Badges): Promedio actual (calculado de sus notas en BD) y Cantidad de entregas.
+* Un menú de contexto (3 puntitos) para Editar o Eliminar.
+
+
+
+
+3. **Sincronización en Tiempo Real (Dashboard):**
+* Asegúrate de que cuando se califica un examen y se asigna a un estudiante, la `StudentCard` en la lista se actualice automáticamente (ej. sube su promedio).
+* En la vista de "Calificación" (`SubmissionItem`), si el sistema detectó al estudiante, muestra una tarjeta pequeña: "Vinculado con: [Nombre Completo]". Si no, muestra un dropdown para seleccionarlo manualmente de la lista del curso.
+
+
+4. **Base de Datos (Refinamiento):**
+* Asegúrate de que la interfaz `Student` en `types.ts` tenga campos para `averageScore` (opcional/calculado) y `submissionCount`.
+
+
+
+**Estilo Visual:**
+Queremos un look "LMS Moderno" (Learning Management System). Usa sombras suaves (`shadow-sm`), bordes redondeados (`rounded-xl`) y colores que indiquen estatus (Verde para aprobados, Ámbar para riesgo).
+
+**Nota Importante:**
+No rompas la lógica de subida de archivos ni la conexión con Gemini. Esto es una capa de mejora sobre la gestión de datos y la UI.
+
+---
+
+### ¿Por qué este prompt es seguro?
+
+1. **Modularidad:** Le pide crear componentes nuevos (`StudentCard`) en lugar de reescribir todo el archivo gigante.
+2. **Lógica defensiva:** Pide un algoritmo de coincidencia (>70%), lo que evita que el sistema asigne notas a la persona equivocada "a lo loco".
+3. **Enfoque Visual:** Le da instrucciones directas de Tailwind (`grid-cols`, `rounded-xl`) para que te dé esas cuadrículas bonitas que pediste.
+
+¿Te parece bien el plan? Si es así, ¡lánzale el prompt!
