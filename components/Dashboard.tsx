@@ -390,7 +390,7 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
       </div>
 
       <footer className="mt-8 text-center text-slate-400 text-xs">
-        <p>Generado para Ab. Jose Morales • {new Date().getFullYear()}</p>
+        <p>HACA • {new Date().getFullYear()}</p>
       </footer>
     </div>
   );
