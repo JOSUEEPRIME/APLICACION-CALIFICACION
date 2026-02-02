@@ -1,86 +1,53 @@
-¡Claro que sí, mi bro! Vamos a pulir esa joya. 💎
 
-Primero, déjame explicarte técnicamente lo que me pides sobre el botón de "Atrás", porque es un concepto fundamental en el desarrollo web moderno.
+**Objetivo:** Generar un Diagrama de Flujo Funcional (Swimlane Diagram) de Alto Nivel Técnico.
 
-### 🧠 ¿Qué es lo que pasa con el botón "Atrás"? (Explicación Técnica)
+**Justificación de la Elección:**
+La mejor opción para representar este sistema es un **Diagrama de Carriles (Swimlane Diagram)** o un **Diagrama de Secuencia de Sistema**.
+*¿Por qué?* Porque el sistema tiene múltiples actores claros (Usuario, Interfaz React, Base de Datos Firestore, IA Gemini) y el valor real está en ver cómo la data fluye entre ellos a través del tiempo, no solo cómo están conectados estáticamente.
 
-Lo que tú quieres mejorar se llama **Enrutamiento (Routing)** o **Manejo del Historial del Navegador (Browser History Management)**.
+**PROMPT DETALLADO:**
 
-* **El Problema Actual:** Tu aplicación es una *Single Page Application* (SPA) que usa "Estado" (`useState`) para cambiar de vistas. Cuando pasas de *Cursos* a *Materias*, la URL del navegador sigue siendo la misma (ej. `localhost:5173`). Para el navegador, **nunca cambiaste de página**. Por eso, cuando presionas "Atrás" en el celular o en el navegador, te saca de la app, porque el navegador piensa: *"El usuario no ha navegado a ningún lado dentro de este sitio, así que quiere salir"*.
-* **La Solución:** Necesitamos manipular la **History API** del navegador. Básicamente, cada vez que entres a un Curso o Materia, le diremos al navegador: *"Oye, anota esto en el historial como si fuera una página nueva"*. Así, cuando presiones "Atrás", el navegador nos avisará y nosotros capturaremos ese evento para volver al estado anterior (cerrar la materia) en lugar de cerrar la app.
+"Actúa como un Arquitecto de Software Senior y genera una especificación detallada para crear un Diagrama de Procesos Técnicos (Swimlane Flowchart) que describa el funcionamiento de la aplicación 'Josue Aplicacion Calificación'.
 
----
+**1. Definición de Carriles (Actores/Sistemas):**
+*   **Usuario (Profesor):** Interactúa con la UI, carga archivos y valida resultados.
+*   **Cliente Frontend (React/Vite + TypeScript):** Maneja el estado (Context/State), el enrutamiento (URL Hash), y la lógica de negocio.
+*   **Servicio de Persistencia (Firebase Firestore):** Almacena cursos, estudiantes, exámenes y las entregas (imágenes Base64 + metadatos). Funciona con listeners en tiempo real (`onSnapshot`).
+*   **Motor de IA (Google Gemini 1.5 Flash API):** Procesa las imágenes OCR, analiza el contenido contra la rúbrica y devuelve JSON estructurado.
 
-### 🚀 El Prompt para Antigravity
+**2. Flujos Críticos a Representar:**
 
-Este prompt le pide a la IA tres cosas puntuales:
+**A. Flujo de Navegación y Persistencia (State Hydration)**
+1.  **Inicio:** El Usuario carga la URL (ej. `app/#course/123/subject/456/exam/789`).
+2.  **Cliente Frontend:** Detecta el Hash en `useEffect`.
+3.  **Cliente Frontend:** Ejecuta llamadas paralelas `getCourse(123)`, `getSubject(456)`, `getExam(789)` a **Firestore**.
+4.  **Firestore:** Retorna los objetos de configuración y la Rúbrica asociada al examen.
+5.  **Cliente Frontend:** Establece el estado global y renderiza la vista de 'Calificación' directamente.
 
-1. **Integrar el Selector de Exámenes** (La entidad intermedia que creamos conceptualmente).
-2. **Hacer todo "Mobile First"** (Responsivo para celulares).
-3. **Implementar un Hook de Navegación** para que el botón físico de "Atrás" funcione.
+**B. Flujo de Carga y Creación de Entregas (Data Ingestion)**
+1.  **Usuario:** Selecciona múltiples imágenes de exámenes manuscritos y las arrastra al 'StudentUpload'.
+2.  **Cliente Frontend:** Convierte cada imagen a Base64 localmente.
+3.  **Cliente Frontend:** Itera sobre los archivos y llama a `createSubmission()`.
+4.  **Firestore:** Crea un documento en la colección `submissions`.
+    *   *Estado Inicial:* `PENDING`
+    *   *Payload:* `{ fileData: "base64...", mimeType: "image/jpeg", courseId: "...", examId: "..." }`
+5.  **Cliente Frontend:** El listener `onSnapshot` detecta el nuevo documento y actualiza la lista UI automáticamente.
 
-Copia y pega esto:
+**C. Flujo de Calificación con IA (The Core Loop)**
+1.  **Usuario:** Presiona el botón 'Iniciar Calificación'.
+2.  **Cliente Frontend:** Filtra localmente las entregas con estado `PENDING` o `ERROR`.
+3.  **Bucle de Procesamiento (Cliente Frontend):**
+    *   **Paso 3.1:** Cambia el estado en **Firestore** a `PROCESSING`.
+    *   **Paso 3.2 (Llamada IA):** Envía `fileData` (Imagen) + `RubricConfig` (Texto JSON) al **Motor de IA (Gemini)**.
+    *   **Paso 3.3 (Análisis IA):** Gemini procesa OCR + Razonamiento. Retorna JSON: `{ studentName: "Juan Pérez", score: 8.5, feedback: "..." }`.
+    *   **Paso 3.4 (Matching Algorítmico):** **Cliente** ejecuta algoritmo de Levenshtein comparando `studentName` (OCR) contra la lista de `students` del Curso.
+    *   **Paso 3.5 (Persistencia):** Actualiza el documento en **Firestore** con el Resultado, el ID del estudiante encontrado (si aplica) y cambia estado a `COMPLETED`.
+    *   **Paso 3.6 (Estadísticas):** Dispara `recalculateStudentStats` en **Firestore** para actualizar el promedio del estudiante.
 
----
+**D. Visualización y Exportación**
+1.  **Firestore:** Notifica cambios de estado (`COMPLETED`) a través de los sockets en tiempo real.
+2.  **Cliente Frontend:** Renderiza la tarjeta de 'Submission' con verde (éxito).
+3.  **Usuario:** Puede hacer clic para ver el detalle (Modal) o presionar 'Exportar CSV'.
 
-**Rol:** Eres un Desarrollador Frontend Senior experto en React, UX Móvil y History API.
-
-**Objetivos:**
-
-1. Integrar la selección de **Exámenes** en el flujo principal.
-2. Hacer que la interfaz sea totalmente **Responsiva (Mobile-First)**.
-3. Implementar **Manejo del Historial del Navegador** para que el botón "Atrás" del celular/navegador funcione correctamente.
-
-**Instrucciones Técnicas (Paso a Paso):**
-
-**1. Flujo de Navegación y Botón "Atrás" (History API):**
-
-* **Problema:** Actualmente la navegación es solo por estado (`useState`). Al presionar "Atrás" en el navegador, la app se cierra.
-* **Solución:** Implementa un `useEffect` en `App.tsx` que gestione el evento `window.onpopstate`.
-* Cuando el usuario seleccione un Curso, Materia o Examen, usa `window.history.pushState({}, '', '#curso/materia')`.
-* Escucha el evento `popstate`. Si el usuario presiona atrás:
-* Si está en `GradingView`, vuelve a `ExamSelector`.
-* Si está en `ExamSelector`, vuelve a `SubjectSelector`.
-* Si está en `SubjectSelector`, vuelve a `CourseSelector`.
-
-
-
-
-* Asegúrate de que esto sincronice con los `setSelected...` de React.
-
-**2. Implementación de `ExamSelector` (Nueva Pantalla):**
-
-* Crea el componente `components/ExamSelector.tsx`.
-* **Diseño:** Debe verse igual de bien que la lista de estudiantes. Usa un **Grid Responsivo** (`grid-cols-1 md:grid-cols-3`).
-* **Contenido de la Tarjeta de Examen:**
-* Icono de documento.
-* Nombre del Examen (ej. "Primer Parcial").
-* Fecha de creación.
-* **Estadísticas:** Muestra "Total Entregas: X" (Consulta rápida o prop).
-
-
-* **Acción:** Al hacer clic, lleva a la vista de Calificación (`GradingView`) cargando la rúbrica asociada.
-
-**3. Optimización Responsiva (UI Móvil):**
-
-* Revisa `App.tsx`, `SubjectSelector`, y `ExamSelector`.
-* Asegúrate de que los contenedores principales tengan `px-4` en móvil y `px-8` en desktop.
-* Los botones de acción (como "Crear Examen" o "Calificar") deben ser de **ancho completo (w-full)** en pantallas pequeñas (`sm:w-auto` en grandes) para facilitar el toque con el dedo.
-* En `StudentManager`, asegura que el modal ocupe casi toda la pantalla en móviles (`w-[95%]`) para aprovechar el espacio.
-
-**4. Ubicación de "Total de Estudiantes":**
-
-* En la vista de `ExamSelector`, agrega un resumen superior tipo Dashboard:
-* Tarjeta pequeña: "Total Estudiantes en Curso".
-* Tarjeta pequeña: "Exámenes Creados".
-
-
-* Esto cumple el requerimiento de tener la información visible antes de entrar a calificar.
-
----
-
-### 💡 ¿Qué vas a conseguir con esto?
-
-1. **Sensación Nativa:** En tu celular, entrarás a "Matemáticas" -> "Parcial 1". Si le das al botón de atrás de tu Android/iPhone, volverás a "Matemáticas" suavemente, no te sacará de la app.
-2. **Uso con una mano:** Los botones importantes serán grandes en el celular, fáciles de tocar.
-3. **Orden:** Tendrás tus exámenes organizados en carpetas, y sabrás cuántos estudiantes hay antes de empezar a trabajar.
+**Formato de Salida Esperado:**
+Genera este diagrama usando sintaxis **Mermaid.js** (tipo `sequenceDiagram` o `flowchart TD` con subgraphs) o una descripción visual paso a paso para un diseñador."
