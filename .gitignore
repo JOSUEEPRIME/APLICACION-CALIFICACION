@@ -36,3 +36,6 @@ dist-ssr
 .env
 .env.local
 .env.*
+
+# Context directory
+context/

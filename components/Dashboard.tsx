@@ -136,17 +136,17 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
   };
 
   return (
-    <div className="bg-slate-50 font-sans text-slate-800 p-4 md:p-8">
+    <div className="bg-light font-sans text-secondary p-4 md:p-8">
 
       {/* Header inside Dashboard */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Dashboard de Resultados</h2>
-          <p className="text-slate-500 mt-1">Análisis detallado de evaluaciones</p>
+          <h2 className="text-2xl font-bold text-gray-800">Dashboard de Resultados</h2>
+          <p className="text-gray-500 mt-1">Análisis detallado de evaluaciones</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition shadow-sm">
+          <label className="cursor-pointer bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition shadow-sm">
             <Upload size={18} />
             <span>Cargar CSV Completo</span>
             <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
@@ -159,28 +159,28 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
         <StatCard
           title="Total Estudiantes"
           value={stats.totalStudents}
-          icon={<Users className="text-blue-500" />}
-          color="bg-blue-50"
+          icon={<Users className="text-primary" />}
+          color="bg-primary/10"
         />
         <StatCard
           title="Promedio General"
           value={stats.avgScore.toFixed(2)}
           suffix="/ 10"
-          icon={<TrendingUp className="text-emerald-500" />}
-          color="bg-emerald-50"
+          icon={<TrendingUp className="text-success" />}
+          color="bg-success/10"
         />
         <StatCard
           title="Tasa Aprobación"
           value={`${stats.totalStudents > 0 ? ((stats.passing / stats.totalStudents) * 100).toFixed(0) : 0}%`}
           subtext={`(Nota >= 7)`}
-          icon={<Award className="text-purple-500" />}
-          color="bg-purple-50"
+          icon={<Award className="text-warning" />}
+          color="bg-warning/10"
         />
         <StatCard
           title="Nota Más Alta"
           value={stats.maxScore}
-          icon={<BarChart2 className="text-orange-500" />}
-          color="bg-orange-50"
+          icon={<BarChart2 className="text-info" />}
+          color="bg-info/10"
         />
       </div>
 
@@ -190,35 +190,35 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Distribución de Notas */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="text-lg font-semibold mb-4 text-slate-800">Distribución de Rendimiento</h3>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">Distribución de Rendimiento</h3>
             <div className="flex items-end h-40 gap-4 mt-4 px-4">
               <Bar
                 label="Bajo (0-4)"
                 count={stats.distribution.low}
                 total={stats.totalStudents}
-                color="bg-red-400"
+                color="bg-danger"
               />
               <Bar
                 label="Medio (5-7)"
                 count={stats.distribution.mid}
                 total={stats.totalStudents}
-                color="bg-yellow-400"
+                color="bg-warning"
               />
               <Bar
                 label="Alto (8-10)"
                 count={stats.distribution.high}
                 total={stats.totalStudents}
-                color="bg-emerald-400"
+                color="bg-success"
               />
             </div>
           </div>
 
           {/* Nueva Sección: Palabras Más Frecuentes */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-slate-800">Palabras Frecuentes en Respuestas</h3>
-              <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded-full font-medium">Top 8</span>
+              <h3 className="text-lg font-semibold text-gray-800">Palabras Frecuentes en Respuestas</h3>
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">Top 8</span>
             </div>
 
             <div className="space-y-4">
@@ -226,18 +226,18 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
                 wordStats.map((item, index) => (
                   <div key={item.text} className="relative group">
                     <div className="flex justify-between items-center mb-1 text-sm">
-                      <span className="font-medium text-slate-700 capitalize flex items-center gap-2">
-                        <span className="text-slate-300 w-4 text-xs font-mono">#{index + 1}</span>
+                      <span className="font-medium text-gray-700 capitalize flex items-center gap-2">
+                        <span className="text-gray-300 w-4 text-xs font-mono">#{index + 1}</span>
                         {item.text}
                       </span>
-                      <span className="text-slate-500 text-xs font-mono">{item.value} usos</span>
+                      <span className="text-gray-500 text-xs font-mono">{item.value} usos</span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div className="w-full bg-light rounded-full h-2.5 overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-r shadow-sm ${index === 0 ? 'from-purple-600 to-indigo-600' :
-                          index === 1 ? 'from-indigo-500 to-blue-500' :
-                            index === 2 ? 'from-blue-500 to-cyan-500' :
-                              'from-slate-400 to-slate-500 opacity-60'
+                        className={`h-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-r shadow-sm ${index === 0 ? 'from-primary to-indigo-500' :
+                          index === 1 ? 'from-info to-blue-500' :
+                            index === 2 ? 'from-success to-emerald-500' :
+                              'from-secondary to-gray-500 opacity-60'
                           }`}
                         style={{ width: `${(item.value / wordStats[0].value) * 100}%` }}
                       ></div>
@@ -245,10 +245,10 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                <div className="text-center py-8 text-gray-400 bg-light rounded-lg border border-dashed border-gray-200">
                   <FileText className="mx-auto mb-2 h-8 w-8 opacity-20" />
                   <p className="text-sm">No hay suficientes datos de texto para analizar.</p>
-                  <p className="text-xs mt-1 text-slate-300">Califica más exámenes para ver tendencias.</p>
+                  <p className="text-xs mt-1 text-gray-300">Califica más exámenes para ver tendencias.</p>
                 </div>
               )}
             </div>
@@ -258,21 +258,21 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
 
         {/* Columna Derecha: Resumen */}
         <div className="lg:col-span-1">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-full">
-            <h3 className="text-lg font-semibold mb-4 text-slate-800">Estado del Curso</h3>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-full">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">Estado del Curso</h3>
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                <span className="text-slate-600">Aprobados</span>
-                <span className="font-bold text-emerald-600">{stats.passing}</span>
+              <div className="flex justify-between items-center p-3 bg-light rounded-lg">
+                <span className="text-gray-600">Aprobados</span>
+                <span className="font-bold text-success">{stats.passing}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                <span className="text-slate-600">Reprobados</span>
-                <span className="font-bold text-red-600">{stats.totalStudents - stats.passing}</span>
+              <div className="flex justify-between items-center p-3 bg-light rounded-lg">
+                <span className="text-gray-600">Reprobados</span>
+                <span className="font-bold text-danger">{stats.totalStudents - stats.passing}</span>
               </div>
-              <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="text-sm text-slate-500">
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-sm text-gray-500">
                   La mayoría de los estudiantes se encuentra en el rango
-                  <span className="font-bold text-slate-700"> {
+                  <span className="font-bold text-gray-700"> {
                     stats.totalStudents === 0 ? "..." :
                       stats.distribution.high >= stats.distribution.mid && stats.distribution.high >= stats.distribution.low ? "Alto" :
                         stats.distribution.mid >= stats.distribution.low ? "Medio" : "Bajo"
@@ -285,24 +285,24 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
       </div>
 
       {/* Table Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
-          <h3 className="text-lg font-semibold text-slate-800">Detalle por Estudiante</h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+          <h3 className="text-lg font-semibold text-gray-800">Detalle por Estudiante</h3>
           <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
               placeholder="Buscar estudiante..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+            <thead className="bg-light text-gray-500 font-medium border-b border-gray-200">
               <tr>
                 <th className="px-6 py-4">ID / Archivo</th>
                 <th className="px-6 py-4">Estudiante</th>
@@ -311,21 +311,21 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
                 <th className="px-6 py-4 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-gray-100">
               {filteredData.length > 0 ? (
                 filteredData.map((row) => (
                   <React.Fragment key={row.id}>
-                    <tr className="hover:bg-slate-50 transition">
+                    <tr className="hover:bg-light transition">
                       <td className="px-6 py-4">
-                        <div className="font-medium text-slate-900">{row.id}</div>
-                        <div className="text-xs text-slate-400 truncate max-w-[150px]">{row.filename}</div>
+                        <div className="font-medium text-gray-900">{row.id}</div>
+                        <div className="text-xs text-gray-400 truncate max-w-[150px]">{row.filename}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-xs">
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs">
                             {row.student ? row.student.charAt(0).toUpperCase() : '?'}
                           </div>
-                          <span className={row.student === 'Desconocido' ? 'text-slate-400 italic' : 'text-slate-700'}>
+                          <span className={row.student === 'Desconocido' ? 'text-gray-400 italic' : 'text-gray-700'}>
                             {row.student}
                           </span>
                         </div>
@@ -334,7 +334,7 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
                         <span className={`font-bold text-lg ${getScoreColor(row.score)}`}>
                           {row.score}
                         </span>
-                        <span className="text-slate-400 text-xs ml-1">/ {row.maxScore}</span>
+                        <span className="text-gray-400 text-xs ml-1">/ {row.maxScore}</span>
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge score={row.score} />
@@ -342,7 +342,7 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => toggleRow(row.id)}
-                          className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center gap-1 justify-end ml-auto"
+                          className="text-primary hover:text-primary/80 text-xs font-medium flex items-center gap-1 justify-end ml-auto"
                         >
                           {expandedRow === row.id ? 'Ocultar' : 'Ver Detalles'}
                           {expandedRow === row.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -352,22 +352,22 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
 
                     {/* Expanded Content */}
                     {expandedRow === row.id && (
-                      <tr className="bg-slate-50/80">
+                      <tr className="bg-light/80">
                         <td colSpan={5} className="px-6 py-6">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                              <h4 className="flex items-center gap-2 text-sm font-bold text-blue-700 mb-2">
+                            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                              <h4 className="flex items-center gap-2 text-sm font-bold text-primary mb-2">
                                 <AlertCircle size={16} /> Retroalimentación AI
                               </h4>
-                              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
+                              <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
                                 {row.feedback.replace(/^"|"$/g, '')}
                               </p>
                             </div>
-                            <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                              <h4 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
+                            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                              <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                                 <FileText size={16} /> Transcripción Respuesta
                               </h4>
-                              <p className="text-slate-500 text-sm font-mono leading-relaxed bg-slate-50 p-2 rounded whitespace-pre-wrap">
+                              <p className="text-gray-500 text-sm font-mono leading-relaxed bg-light p-2 rounded whitespace-pre-wrap">
                                 {row.transcription.replace(/^"|"$/g, '')}
                               </p>
                             </div>
@@ -379,7 +379,7 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     No se encontraron resultados para su búsqueda.
                   </td>
                 </tr>
@@ -389,7 +389,7 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
         </div>
       </div>
 
-      <footer className="mt-8 text-center text-slate-400 text-xs">
+      <footer className="mt-8 text-center text-gray-400 text-xs">
         <p>HACA • {new Date().getFullYear()}</p>
       </footer>
     </div>
@@ -399,14 +399,14 @@ const Dashboard: React.FC<DashboardProps> = ({ submissions = [] }) => {
 // Componentes Auxiliares
 
 const StatCard = ({ title, value, suffix, subtext, icon, color }: any) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-start justify-between">
+  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-start justify-between">
     <div>
-      <p className="text-slate-500 text-sm font-medium mb-1">{title}</p>
+      <p className="text-gray-500 text-sm font-medium mb-1">{title}</p>
       <div className="flex items-baseline gap-1">
-        <h2 className="text-2xl font-bold text-slate-800">{value}</h2>
-        {suffix && <span className="text-slate-400 text-sm">{suffix}</span>}
+        <h2 className="text-2xl font-bold text-gray-800">{value}</h2>
+        {suffix && <span className="text-gray-400 text-sm">{suffix}</span>}
       </div>
-      {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>}
+      {subtext && <p className="text-xs text-gray-400 mt-1">{subtext}</p>}
     </div>
     <div className={`p-3 rounded-lg ${color}`}>
       {icon}
@@ -415,17 +415,17 @@ const StatCard = ({ title, value, suffix, subtext, icon, color }: any) => (
 );
 
 const StatusBadge = ({ score }: { score: number }) => {
-  if (score >= 8) return <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-xs font-bold">Excelente</span>;
-  if (score >= 7) return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-bold">Aprobado</span>;
-  if (score >= 4) return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-bold">Regular</span>;
-  return <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-bold">Reprobado</span>;
+  if (score >= 8) return <span className="bg-success/20 text-success px-2 py-1 rounded-full text-xs font-bold">Excelente</span>;
+  if (score >= 7) return <span className="bg-info/20 text-info px-2 py-1 rounded-full text-xs font-bold">Aprobado</span>;
+  if (score >= 4) return <span className="bg-warning/20 text-warning px-2 py-1 rounded-full text-xs font-bold">Regular</span>;
+  return <span className="bg-danger/20 text-danger px-2 py-1 rounded-full text-xs font-bold">Reprobado</span>;
 };
 
 const getScoreColor = (score: number) => {
-  if (score >= 8) return 'text-emerald-600';
-  if (score >= 7) return 'text-blue-600';
-  if (score >= 5) return 'text-yellow-600';
-  return 'text-red-600';
+  if (score >= 8) return 'text-success';
+  if (score >= 7) return 'text-info';
+  if (score >= 5) return 'text-warning';
+  return 'text-danger';
 };
 
 const Bar = ({ label, count, total, color }: { label: string, count: number, total: number, color: string }) => {
@@ -435,7 +435,7 @@ const Bar = ({ label, count, total, color }: { label: string, count: number, tot
 
   return (
     <div className="flex-1 flex flex-col justify-end items-center group h-full">
-      <div className="mb-2 text-xs font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="mb-2 text-xs font-bold text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
         {count} alum. ({heightPercentage.toFixed(0)}%)
       </div>
       <div className="w-full flex-1 flex items-end justify-center">
@@ -445,7 +445,7 @@ const Bar = ({ label, count, total, color }: { label: string, count: number, tot
         >
         </div>
       </div>
-      <div className="mt-2 text-xs text-slate-500 font-medium text-center">{label}</div>
+      <div className="mt-2 text-xs text-gray-500 font-medium text-center">{label}</div>
     </div>
   );
 };

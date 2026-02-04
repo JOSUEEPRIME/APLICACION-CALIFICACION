@@ -116,9 +116,9 @@ const StudentReportModal: React.FC<StudentReportModalProps> = ({ student, course
     if (!student) return null;
 
     const getInitials = (name: string) => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-    const getScoreColor = (score: number) => score >= 7 ? 'text-emerald-600' : 'text-red-600';
-    const getBgScoreColor = (score: number) => score >= 7 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800';
-    const getBorderColor = (score: number) => score >= 7 ? 'border-emerald-200' : 'border-red-200';
+    const getScoreColor = (score: number) => score >= 7 ? 'text-success' : 'text-danger';
+    const getBgScoreColor = (score: number) => score >= 7 ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger';
+    const getBorderColor = (score: number) => score >= 7 ? 'border-success/30' : 'border-danger/30';
 
     return (
         <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
@@ -127,7 +127,7 @@ const StudentReportModal: React.FC<StudentReportModalProps> = ({ student, course
                 {/* Header */}
                 <div className="bg-white px-8 py-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6 sticky top-0 z-10">
                     <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-2xl shadow-inner">
+                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl shadow-inner">
                             {getInitials(student.name)}
                         </div>
                         <div>
@@ -143,13 +143,13 @@ const StudentReportModal: React.FC<StudentReportModalProps> = ({ student, course
                         <span className="text-3xl font-black">{reportData.globalAverage.toFixed(2)}</span>
                     </div>
 
-                    <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
+                    <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-light rounded-full text-gray-400 hover:text-gray-600 transition-colors">
                         <X size={24} />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-8 bg-gray-50">
+                <div className="flex-1 overflow-y-auto p-8 bg-light">
 
                     {loading && <div className="text-center py-10 text-gray-400">Cargando expediente...</div>}
 
@@ -185,7 +185,7 @@ const StudentReportModal: React.FC<StudentReportModalProps> = ({ student, course
                                 {group.submissions.length > 0 && (
                                     <div className="bg-white">
                                         <table className="w-full text-left text-sm">
-                                            <thead className="bg-gray-50 text-gray-500">
+                                            <thead className="bg-light text-gray-500">
                                                 <tr>
                                                     <th className="px-6 py-2 font-medium">Evaluación</th>
                                                     <th className="px-6 py-2 font-medium">Nota</th>
@@ -199,7 +199,7 @@ const StudentReportModal: React.FC<StudentReportModalProps> = ({ student, course
                                                     const date = (sub as any).createdAt?.toDate ? (sub as any).createdAt.toDate().toLocaleDateString() : '—';
 
                                                     return (
-                                                        <tr key={sub.id} className="hover:bg-gray-50 transition-colors">
+                                                        <tr key={sub.id} className="hover:bg-light transition-colors">
                                                             <td className="px-6 py-3 text-gray-700 font-medium">
                                                                 {examName}
                                                             </td>
@@ -225,7 +225,7 @@ const StudentReportModal: React.FC<StudentReportModalProps> = ({ student, course
                 </div>
 
                 <div className="bg-gray-50 px-8 py-4 text-center border-t border-gray-200">
-                    <button onClick={onClose} className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors shadow-sm">
+                    <button onClick={onClose} className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-light transition-colors shadow-sm">
                         Cerrar Expediente
                     </button>
                 </div>

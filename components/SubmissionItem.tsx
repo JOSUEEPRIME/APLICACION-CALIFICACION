@@ -19,10 +19,10 @@ const SubmissionItem: React.FC<SubmissionItemProps> = ({
 
   const getStatusColor = (status: GradingStatus) => {
     switch (status) {
-      case GradingStatus.COMPLETED: return 'bg-green-100 text-green-800 border-green-200';
-      case GradingStatus.PROCESSING: return 'bg-blue-100 text-blue-800 border-blue-200';
-      case GradingStatus.ERROR: return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case GradingStatus.COMPLETED: return 'bg-success/20 text-success border-success/30';
+      case GradingStatus.PROCESSING: return 'bg-info/20 text-info border-info/30';
+      case GradingStatus.ERROR: return 'bg-danger/20 text-danger border-danger/30';
+      default: return 'bg-light text-gray-800 border-gray-200';
     }
   };
 
@@ -33,11 +33,11 @@ const SubmissionItem: React.FC<SubmissionItemProps> = ({
 
   return (
     <div
-      className={`bg-white rounded-lg border p-4 flex flex-col sm:flex-row items-center justify-between hover:shadow-md transition-shadow cursor-pointer ${submission.matchedStudentId ? 'border-green-200 ring-1 ring-green-100' : 'border-gray-200'}`}
+      className={`bg-white rounded-lg border p-4 flex flex-col sm:flex-row items-center justify-between hover:shadow-md transition-shadow cursor-pointer ${submission.matchedStudentId ? 'border-success/30 ring-1 ring-success/20' : 'border-gray-200'}`}
       onClick={() => onClick(submission.id)}
     >
       <div className="flex items-center gap-4 w-full sm:w-auto">
-        <div className="h-16 w-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
+        <div className="h-16 w-16 bg-light rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
           <img
             src={`data:${submission.mimeType};base64,${submission.fileData}`}
             alt="Examen"
@@ -51,7 +51,7 @@ const SubmissionItem: React.FC<SubmissionItemProps> = ({
             {submission.status === GradingStatus.COMPLETED || submission.status === GradingStatus.PROCESSING ? (
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <select
-                  className={`block w-full max-w-[250px] pl-2 pr-8 py-1 text-sm font-semibold rounded-md border-0 ring-1 ring-inset focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 ${submission.matchedStudentId ? 'text-green-700 ring-green-200 bg-green-50' : 'text-gray-900 ring-gray-300'
+                  className={`block w-full max-w-[250px] pl-2 pr-8 py-1 text-sm font-semibold rounded-md border-0 ring-1 ring-inset focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6 ${submission.matchedStudentId ? 'text-success ring-success/30 bg-success/5' : 'text-gray-900 ring-gray-300'
                     }`}
                   value={submission.matchedStudentId || ""}
                   onChange={handleStudentChange}
@@ -65,7 +65,7 @@ const SubmissionItem: React.FC<SubmissionItemProps> = ({
                 </select>
                 {/* OCR Feedback */}
                 {!submission.matchedStudentId && submission.result?.studentName && (
-                  <p className="text-xs text-orange-500 mt-1 flex items-center gap-1">
+                  <p className="text-xs text-warning mt-1 flex items-center gap-1">
                     <span>⚠️ OCR leyó: "{submission.result.studentName}"</span>
                   </p>
                 )}
@@ -84,7 +84,7 @@ const SubmissionItem: React.FC<SubmissionItemProps> = ({
       <div className="flex items-center gap-6 mt-4 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
         {submission.result && (
           <div className="text-right">
-            <span className={`block text-2xl font-bold ${submission.result.score >= 7 ? 'text-green-600' : 'text-amber-600'}`}>
+            <span className={`block text-2xl font-bold ${submission.result.score >= 7 ? 'text-success' : 'text-warning'}`}>
               {submission.result.score}
               <span className="text-sm text-gray-400 font-normal">/{submission.result.maxScore}</span>
             </span>
@@ -94,7 +94,7 @@ const SubmissionItem: React.FC<SubmissionItemProps> = ({
 
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(submission.id); }}
-          className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-all"
+          className="text-gray-300 hover:text-danger hover:bg-danger/10 p-2 rounded-full transition-all"
           title="Eliminar examen"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

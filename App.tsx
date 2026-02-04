@@ -6,12 +6,12 @@ import DetailModal from './components/DetailModal';
 import Dashboard from './components/Dashboard';
 import CourseSelector from './components/CourseSelector';
 import SubjectSelector from './components/SubjectSelector';
-import ExamSelector from './components/ExamSelector'; // New import
+import ExamSelector from './components/ExamSelector';
 import StudentManager from './components/StudentManager';
 import { RubricConfig, StudentSubmission, GradingStatus, Course, Student, Subject, Exam } from './types';
 import { gradeSubmission } from './services/geminiService';
 import { downloadCSV, findBestStudentMatch } from './utils';
-import { BarChart2, Edit3, ArrowLeft, Users } from 'lucide-react';
+import { BarChart2, Edit3, ArrowLeft, Users, Zap, Layout, LogOut } from 'lucide-react';
 import { subscribeToSubmissions, createSubmission, deleteSubmission, updateSubmissionResult, subscribeToStudents, getCourse, getSubject, getExam } from './services/db';
 
 export default function App() {
@@ -19,13 +19,13 @@ export default function App() {
     description: "",
     maxScore: 10,
     strictness: 'moderate',
-    language: 'spanish' // Default to Spanish
+    language: 'spanish'
   });
 
   // Course & Subject & Exam State
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
-  const [selectedExam, setSelectedExam] = useState<Exam | null>(null); // New state
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [isLoadingState, setIsLoadingState] = useState(true);
 
   const [showStudentManager, setShowStudentManager] = useState(false);
@@ -43,7 +43,7 @@ export default function App() {
     }
   }, [selectedExam]);
 
-  // Sync Students for selected COURSE (Students belong to the course/grade, not just the subject)
+  // Sync Students for selected COURSE
   useEffect(() => {
     if (selectedCourse) {
       const unsubscribe = subscribeToStudents(selectedCourse.id, (data) => {
@@ -53,22 +53,15 @@ export default function App() {
     }
   }, [selectedCourse]);
 
-  // Real-time sync with Firestore (filtered by EXAM now)
+  // Real-time sync with Firestore
   useEffect(() => {
     if (selectedExam) {
       const unsubscribe = subscribeToSubmissions((data) => {
-        // Filter locally by examId since the service filters by subjectId generally or update service to filter by examId
-        // But for now, let's assume service is updated or we filter here.
-        // Actually, previous step updated subscribeToSubmissions but didn't change the query to filter by examId?
-        // Let's re-read the service update. Ah, I did not update the query in subscribeToSubmissions to filter by examId, only to RETURN extra field.
-        // So I should filter here for safety or update the service.
-        // Given complexity, let's filter client side or update service.
-        // Let's rely on filtering here for now:
         setSubmissions(data.filter(s => s.examId === selectedExam.id));
-      }, selectedSubject?.id || null); //Still subscribe to subject, but we might want to change this later
+      }, selectedSubject?.id || null);
       return () => unsubscribe();
     } else {
-      setSubmissions([]); // Clear submissions if no exam selected
+      setSubmissions([]);
     }
   }, [selectedExam, selectedSubject]);
 
@@ -118,11 +111,6 @@ export default function App() {
 
     const handlePopState = () => {
       const hash = window.location.hash;
-      console.log("PopState:", hash);
-
-      const parts = hash.replace('#', '').split('/');
-
-      // Simple logic to "go back" by unsetting state if URL part is missing
       const isExamLevel = hash.includes('/exam/');
       const isSubjectLevel = hash.includes('/subject/') && !isExamLevel;
       const isCourseLevel = hash.includes('/course/') && !isSubjectLevel;
@@ -158,15 +146,9 @@ export default function App() {
     window.history.pushState({}, '', `#course/${selectedCourse?.id}/subject/${selectedSubject?.id}/exam/${exam.id}`);
   };
 
-  const handleBackToSubject = () => {
-    window.history.back();
-  };
-
-  // Add new files to the list -> Upload to Firebase
   const handleUpload = useCallback(async (files: { name: string; data: string; mimeType: string }[]) => {
     if (!selectedCourse || !selectedSubject || !selectedExam) return;
 
-    // Process uploads sequentially
     for (const f of files) {
       try {
         await createSubmission({
@@ -174,7 +156,7 @@ export default function App() {
           mimeType: f.mimeType,
           courseId: selectedCourse.id,
           subjectId: selectedSubject.id,
-          examId: selectedExam.id // <--- Pass examId
+          examId: selectedExam.id
         }, f.data);
       } catch (error) {
         console.error("Upload failed", error);
@@ -183,21 +165,14 @@ export default function App() {
     }
   }, [selectedCourse, selectedSubject, selectedExam]);
 
-  // Remove a submission -> Delete from Firebase
   const handleRemove = async (id: string) => {
-    const sub = submissions.find(s => s.id === id);
-    if (!sub) return;
-
     if (confirm("¿Estás seguro de eliminar este examen?")) {
-      await deleteSubmission(id); // Only ID needed now
+      await deleteSubmission(id);
       if (selectedSubmissionId === id) setSelectedSubmissionId(null);
     }
   };
 
-  // Trigger Grading Process
   const startGrading = async () => {
-    // Validación
-    // Rubric is now loaded from Exam, so it should be there.
     const hasRubricContent = rubric.description.trim().length > 0 || (rubric.rubricFileData && rubric.rubricFileData.length > 0);
 
     if (!hasRubricContent) {
@@ -211,28 +186,17 @@ export default function App() {
 
     for (const sub of pendingSubmissions) {
       try {
-        // 1. Update status to processing
         await updateSubmissionResult(sub.id, null, GradingStatus.PROCESSING);
-
-        // 2. Grade directly using fileData (from Firestore doc)
-        // Use the current rubric state (which matches the exam)
         const result = await gradeSubmission(sub.fileData, sub.mimeType, rubric);
-
-        // 3. Find Best Match for Student
         const matchedId = findBestStudentMatch(result.studentName, students);
 
-        // 4. Update result object with matched info if found (optional, but good for UI)
         if (matchedId) {
           const matchedStudent = students.find(s => s.id === matchedId);
           if (matchedStudent) {
-            result.studentName = matchedStudent.name; // Auto-correct name
+            result.studentName = matchedStudent.name;
           }
-        } else {
-          // Si no hay coincidencia, marcar como no identificado en el nombre si se desea, 
-          // o simplemente dejar el nombre OCR.
         }
 
-        // 5. Save result
         await updateSubmissionResult(sub.id, result, GradingStatus.COMPLETED, matchedId);
 
       } catch (error) {
@@ -244,20 +208,16 @@ export default function App() {
     setIsGrading(false);
   };
 
-  // Handle manual student assignment
   const handleManualAssign = async (submissionId: string, studentId: string) => {
     const student = students.find(s => s.id === studentId);
     if (!student) return;
 
-    // Update local state instantly
     setSubmissions(prev => prev.map(sub =>
       sub.id === submissionId
         ? { ...sub, matchedStudentId: studentId, result: sub.result ? { ...sub.result, studentName: student.name } : undefined }
         : sub
     ));
 
-    // Save to DB
-    // Assuming updateSubmissionResult handles matchedStudentId as 4th arg
     await updateSubmissionResult(submissionId, { studentName: student.name }, GradingStatus.COMPLETED, studentId);
   };
 
@@ -269,115 +229,146 @@ export default function App() {
       s.result?.studentName || "N/A",
       s.result?.score || 0,
       s.result?.maxScore || rubric.maxScore,
-      `"${s.result?.feedback?.replace(/"/g, '""') || ''}"`, // CSV escape
+      `"${s.result?.feedback?.replace(/"/g, '""') || ''}"`,
       `"${s.result?.transcription?.replace(/"/g, '""') || ''}"`
     ]);
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(r => r.join(","))
-    ].join("\n");
-
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
     downloadCSV(csvContent, `haca-resultados-${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   const completedCount = submissions.filter(s => s.status === GradingStatus.COMPLETED).length;
 
 
+  // Robust Back Handlers
+  const handleBackToCourses = () => {
+    setSelectedCourse(null);
+    setSelectedSubject(null);
+    setSelectedExam(null);
+    window.history.pushState(null, '', ' ');
+  };
+
+  const handleBackToSubjects = () => {
+    setSelectedSubject(null);
+    setSelectedExam(null);
+    if (selectedCourse) {
+      window.history.pushState(null, '', `#course/${selectedCourse.id}`);
+    }
+  };
+
+  const handleBackToExams = () => {
+    setSelectedExam(null);
+    if (selectedCourse && selectedSubject) {
+      window.history.pushState(null, '', `#course/${selectedCourse.id}/subject/${selectedSubject.id}`);
+    }
+  };
 
 
-
-  // 1. If no course selected, show course selector
+  // Views Routing
   if (!selectedCourse) {
     return <CourseSelector onSelectCourse={handleSelectCourse} />;
   }
 
-  // 2. If course selected but NO subject selected, show subject selector
   if (!selectedSubject) {
     return (
-      <>
-        {showStudentManager ? (
-          <StudentManager
-            isOpen={true}
-            courseId={selectedCourse.id}
-            onClose={() => setShowStudentManager(false)}
-          />
-        ) : (
-          <SubjectSelector
-            course={selectedCourse}
-            onSelectSubject={handleSelectSubject}
-            onBack={() => {
-              // UI Back Button: Go back in history
-              window.history.back();
-            }}
-          />
-        )}
-        {!showStudentManager && (
-          <div className="fixed bottom-6 right-6 z-40">
-            <button
-              onClick={() => setShowStudentManager(true)}
-              className="flex items-center gap-2 bg-gray-800 text-white px-5 py-3 rounded-full shadow-lg hover:scale-105 transition-transform"
-            >
-              <Users size={20} />
-              <span className="font-bold">Estudiantes del Curso</span>
-            </button>
-          </div>
-        )}
-        <div className="fixed bottom-6 left-6 z-40 sm:hidden">
-          {/* Mobile Fab for easy thumb access if needed, or stick to right */}
+      <div className="min-h-screen bg-light">
+        <div className="bg-gradient-to-r from-primary to-primary/80 h-48 absolute top-0 w-full z-0"></div>
+        <div className="relative z-10 pt-8">
+          {showStudentManager ? (
+            <StudentManager
+              isOpen={true}
+              courseId={selectedCourse.id}
+              onClose={() => setShowStudentManager(false)}
+            />
+          ) : (
+            <SubjectSelector
+              course={selectedCourse}
+              onSelectSubject={handleSelectSubject}
+              onBack={handleBackToCourses}
+            />
+          )}
+
+          {!showStudentManager && (
+            <div className="fixed bottom-8 right-8 z-40">
+              <button
+                onClick={() => setShowStudentManager(true)}
+                className="flex items-center gap-2 bg-gray-900 hover:bg-black text-white px-6 py-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-300 font-medium group"
+              >
+                <Users size={20} className="group-hover:text-primary transition-colors" />
+                <span>Gestionar Estudiantes</span>
+              </button>
+            </div>
+          )}
         </div>
-      </>
+      </div>
     );
   }
 
-  // 3. If subject selected but NO exam selected, show exam selector
   if (!selectedExam) {
     return (
-      <ExamSelector
-        subjectId={selectedSubject.id}
-        studentCount={students.length}
-        onSelectExam={handleSelectExam}
-        onBack={() => window.history.back()}
-      />
+      <div className="min-h-screen bg-light">
+        <div className="bg-gradient-to-r from-primary to-primary/80 h-48 absolute top-0 w-full z-0"></div>
+        <div className="relative z-10 pt-8">
+          <ExamSelector
+            subjectId={selectedSubject.id}
+            studentCount={students.length}
+            onSelectExam={handleSelectExam}
+            onBack={handleBackToSubjects}
+          />
+        </div>
+      </div>
     );
   }
 
   // 4. Main Grading Interface (Subject & Exam Selected)
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col font-sans">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50/50 flex flex-col font-sans">
+      {/* Premium Glassmorphic Header */}
+      <header className="sticky top-0 z-40 w-full">
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm"></div>
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between relative z-10 py-3">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => window.history.back()}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
-              title="Volver a Exámenes"
+              onClick={handleBackToExams}
+              className="p-2.5 hover:bg-gray-100/80 rounded-full transition-all text-gray-500 hover:text-primary active:scale-95"
+              title="Volver"
             >
-              <ArrowLeft size={20} />
+              <ArrowLeft size={22} />
             </button>
 
-            {/* Navigation Tabs */}
-            <nav className="flex items-center bg-gray-100 p-1 rounded-lg ml-4">
+            <div className="h-6 w-px bg-gray-200 mx-2 hidden sm:block"></div>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/20 text-white font-bold text-lg">
+                {selectedCourse.name.charAt(0)}
+              </div>
+              <div className="hidden md:block">
+                <h1 className="text-sm font-bold text-gray-900 leading-tight">{selectedExam.name}</h1>
+                <p className="text-xs text-gray-500 font-medium">{selectedSubject.name} • {selectedCourse.name}</p>
+              </div>
+            </div>
+
+            {/* Navigation Tabs - Modern Pill Style */}
+            <nav className="flex items-center bg-gray-100/50 p-1.5 rounded-full ml-6 border border-gray-200/50">
               <button
                 onClick={() => setCurrentView('grading')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${currentView === 'grading'
-                  ? 'bg-white text-indigo-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300 ${currentView === 'grading'
+                  ? 'bg-white text-primary shadow-sm ring-1 ring-black/5'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                   }`}
               >
-                <Edit3 size={16} />
+                <Edit3 size={15} />
                 <span className="hidden sm:inline">Calificación</span>
               </button>
               <button
                 onClick={() => setCurrentView('dashboard')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${currentView === 'dashboard'
-                  ? 'bg-white text-indigo-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300 ${currentView === 'dashboard'
+                  ? 'bg-white text-primary shadow-sm ring-1 ring-black/5'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                   }`}
               >
-                <BarChart2 size={16} />
-                <span className="hidden sm:inline">Dashboard</span>
+                <BarChart2 size={15} />
+                <span className="hidden sm:inline">Resultados</span>
               </button>
             </nav>
           </div>
@@ -387,22 +378,21 @@ export default function App() {
             {currentView === 'grading' && completedCount > 0 && (
               <button
                 onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm active:scale-95"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                Exportar CSV
+                <Layout size={16} />
+                <span className="hidden lg:inline">Exportar CSV</span>
               </button>
             )}
+
             {currentView === 'grading' && (
               <button
                 onClick={startGrading}
                 disabled={isGrading || submissions.length === 0}
-                className={`flex items-center gap-2 px-6 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm transition-all
+                className={`flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg shadow-primary/20 transition-all duration-300 transform active:scale-95
                     ${isGrading || submissions.length === 0
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-md'}`}
+                    ? 'bg-gray-400 cursor-not-allowed shadow-none'
+                    : 'bg-gradient-to-r from-primary to-blue-600 hover:from-blue-700 hover:to-primary hover:shadow-xl'}`}
               >
                 {isGrading ? (
                   <>
@@ -410,14 +400,11 @@ export default function App() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Calificando...
+                    Procesando...
                   </>
                 ) : (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <Zap size={18} fill="currentColor" />
                     Iniciar Calificación
                   </>
                 )}
@@ -428,38 +415,41 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 w-full mx-auto">
+      <main className="flex-1 w-full mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
         {currentView === 'grading' ? (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left Col: Config & Upload */}
             <div className="lg:col-span-4 space-y-6">
               <RubricPanel config={rubric} onChange={setRubric} />
-              <div>
+              <div className="sticky top-24">
                 <StudentUpload onUpload={handleUpload} />
               </div>
             </div>
 
             {/* Right Col: Submissions List */}
             <div className="lg:col-span-8">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 min-h-[600px] flex flex-col">
-                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                  <h2 className="text-lg font-bold text-gray-800">Entregas de la Clase</h2>
-                  <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                    {submissions.length} Estudiantes
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 min-h-[600px] flex flex-col overflow-hidden">
+                <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white/50 backdrop-blur-sm">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800">Entregas de Estudiantes</h2>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">Gestiona y califica los documentos subidos</p>
+                  </div>
+                  <span className="text-sm font-bold text-primary bg-primary/10 px-4 py-1.5 rounded-full border border-primary/20">
+                    {submissions.length} Documentos
                   </span>
                 </div>
 
-                <div className="p-4 flex-1 overflow-y-auto bg-gray-50">
+                <div className="p-6 flex-1 overflow-y-auto bg-gray-50/50">
                   {submissions.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                      <p>No hay estudiantes aún.</p>
-                      <p className="text-sm mt-2">Sube exámenes manuscritos para comenzar.</p>
+                    <div className="h-full flex flex-col items-center justify-center text-gray-400 py-20">
+                      <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                        <Layout className="h-10 w-10 text-gray-300" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-600">No hay entregas disponibles</h3>
+                      <p className="text-sm mt-2 max-w-xs text-center text-gray-400">Sube los exámenes escaneados o fotografías utilizando el panel de la izquierda.</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {submissions.map(sub => (
                         <SubmissionItem
                           key={sub.id}
@@ -477,7 +467,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto px-4 py-8">
             <Dashboard submissions={submissions} />
           </div>
         )}
