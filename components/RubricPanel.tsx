@@ -2,12 +2,15 @@ import React, { useState, useRef } from 'react';
 import { RubricConfig } from '../types';
 import { fileToBase64 } from '../utils';
 
+import { Save } from 'lucide-react';
+
 interface RubricPanelProps {
   config: RubricConfig;
   onChange: (config: RubricConfig) => void;
+  onSave?: () => void;
 }
 
-const RubricPanel: React.FC<RubricPanelProps> = ({ config, onChange }) => {
+const RubricPanel: React.FC<RubricPanelProps> = ({ config, onChange, onSave }) => {
   const [activeTab, setActiveTab] = useState<'text' | 'file'>('text');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -170,6 +173,19 @@ const RubricPanel: React.FC<RubricPanelProps> = ({ config, onChange }) => {
             <option value="english">Inglés</option>
           </select>
         </div>
+
+        {/* Save Button */}
+        {onSave && (
+          <div className="pt-2">
+            <button
+              onClick={onSave}
+              className="w-full bg-gray-800 text-white py-2 rounded-lg hover:bg-black transition flex items-center justify-center gap-2 font-medium shadow-md active:scale-95"
+            >
+              <Save size={18} />
+              Guardar Configuración
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -273,6 +273,19 @@ export const createExam = async (exam: { name: string, subjectId: string, rubric
     }
 };
 
+export const updateExam = async (examId: string, data: any) => {
+    try {
+        const docRef = doc(db, "exams", examId);
+        await updateDoc(docRef, {
+            ...data,
+            updatedAt: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Error updating exam:", error);
+        throw error;
+    }
+};
+
 export const subscribeToExams = (subjectId: string, callback: (data: any[]) => void) => {
     const q = query(
         collection(db, "exams"),

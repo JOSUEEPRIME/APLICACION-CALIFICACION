@@ -12,7 +12,7 @@ import { RubricConfig, StudentSubmission, GradingStatus, Course, Student, Subjec
 import { gradeSubmission } from './services/geminiService';
 import { downloadCSV, findBestStudentMatch } from './utils';
 import { BarChart2, Edit3, ArrowLeft, Users, Zap, Layout, LogOut } from 'lucide-react';
-import { subscribeToSubmissions, createSubmission, deleteSubmission, updateSubmissionResult, subscribeToStudents, getCourse, getSubject, getExam } from './services/db';
+import { subscribeToSubmissions, createSubmission, deleteSubmission, updateSubmissionResult, subscribeToStudents, getCourse, getSubject, getExam, updateExam } from './services/db';
 
 export default function App() {
   const [rubric, setRubric] = useState<RubricConfig>({
@@ -235,6 +235,18 @@ export default function App() {
     }
   };
 
+  const handleSaveRubric = async () => {
+    if (selectedExam) {
+      try {
+        await updateExam(selectedExam.id, { rubricConfig: rubric });
+        alert("Rúbrica actualizada correctamente.");
+      } catch (e) {
+        console.error(e);
+        alert("Error al actualizar rúbrica.");
+      }
+    }
+  };
+
   const handleExport = () => {
     const headers = ["ID", "Nombre de Archivo", "Estudiante", "Puntaje", "Puntaje Max", "Retroalimentación", "Transcripción"];
     const rows = submissions.map(s => [
@@ -434,7 +446,7 @@ export default function App() {
           <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left Col: Config & Upload */}
             <div className="lg:col-span-4 space-y-6">
-              <RubricPanel config={rubric} onChange={setRubric} />
+              <RubricPanel config={rubric} onChange={setRubric} onSave={handleSaveRubric} />
               <div className="sticky top-24">
                 <StudentUpload onUpload={handleUpload} />
               </div>
