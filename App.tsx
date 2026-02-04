@@ -212,13 +212,27 @@ export default function App() {
     const student = students.find(s => s.id === studentId);
     if (!student) return;
 
+    const targetSubmission = submissions.find(s => s.id === submissionId);
+    if (!targetSubmission) return;
+
+    const updatedResult = targetSubmission.result
+      ? { ...targetSubmission.result, studentName: student.name }
+      : undefined;
+
     setSubmissions(prev => prev.map(sub =>
       sub.id === submissionId
-        ? { ...sub, matchedStudentId: studentId, result: sub.result ? { ...sub.result, studentName: student.name } : undefined }
+        ? { ...sub, matchedStudentId: studentId, result: updatedResult }
         : sub
     ));
 
-    await updateSubmissionResult(submissionId, { studentName: student.name }, GradingStatus.COMPLETED, studentId);
+    // If there is an existing result, we update it properly merging the new name. 
+    // If not, we don't creating a partial result just with a name creates issues.
+    if (updatedResult) {
+      await updateSubmissionResult(submissionId, updatedResult, GradingStatus.COMPLETED, studentId);
+    } else {
+      // Just update the matched link if no result exists yet
+      await updateSubmissionResult(submissionId, null, targetSubmission.status, studentId);
+    }
   };
 
   const handleExport = () => {

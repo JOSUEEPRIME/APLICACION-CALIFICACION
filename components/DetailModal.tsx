@@ -152,18 +152,18 @@ const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose }) => {
                                         Escritura Reconocida
                                     </h3>
                                     <div className="text-gray-800 font-medium text-lg font-serif leading-relaxed whitespace-pre-wrap">
-                                        "{submission.result.transcription}"
+                                        "{submission.result.transcription || ''}"
                                     </div>
                                 </div>
 
                                 {/* Feedback Section */}
                                 <div className="bg-info/10 p-4 rounded-lg border border-info/20">
                                     <h3 className="text-sm font-bold text-info uppercase tracking-wide mb-2">Retroalimentación del Docente</h3>
-                                    <p className="text-gray-700 leading-relaxed">{submission.result.feedback}</p>
+                                    <p className="text-gray-700 leading-relaxed">{submission.result.feedback || ''}</p>
                                 </div>
 
                                 {/* Improvements Section */}
-                                {submission.result.areasForImprovement.length > 0 && (
+                                {submission.result.areasForImprovement && submission.result.areasForImprovement.length > 0 && (
                                     <div>
                                         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-2">Áreas de Mejora</h3>
                                         <ul className="list-disc list-inside space-y-1 text-gray-700">
