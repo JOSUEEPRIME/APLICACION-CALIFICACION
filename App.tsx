@@ -365,7 +365,7 @@ export default function App() {
             <div className="h-6 w-px bg-gray-200 mx-2 hidden sm:block"></div>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-lg shadow-blue-600/20 text-white font-bold text-lg">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#1e40af] flex items-center justify-center shadow-lg shadow-blue-900/20 text-white font-bold text-lg">
                 {selectedCourse.name.charAt(0)}
               </div>
               <div className="hidden md:block">
@@ -415,10 +415,10 @@ export default function App() {
               <button
                 onClick={startGrading}
                 disabled={isGrading || submissions.length === 0}
-                className={`flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg shadow-blue-600/20 transition-all duration-300 transform active:scale-95
+                className={`flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg shadow-blue-900/20 transition-all duration-300 transform active:scale-95
                     ${isGrading || submissions.length === 0
                     ? 'bg-gray-400 cursor-not-allowed shadow-none'
-                    : 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 hover:shadow-xl'}`}
+                    : 'bg-gradient-to-r from-[#2563eb] to-[#1e40af] hover:from-[#1d4ed8] hover:to-[#1e3a8a] hover:shadow-xl'}`}
               >
                 {isGrading ? (
                   <>
