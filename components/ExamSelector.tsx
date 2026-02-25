@@ -21,7 +21,6 @@ const ExamSelector: React.FC<ExamSelectorProps> = ({ subjectId, studentCount, on
     const [newRubric, setNewRubric] = useState<RubricConfig>({
         description: "",
         maxScore: 10,
-        strictness: 'moderate',
         language: 'spanish'
     });
 

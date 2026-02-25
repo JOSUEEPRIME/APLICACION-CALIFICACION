@@ -18,7 +18,6 @@ export default function App() {
   const [rubric, setRubric] = useState<RubricConfig>({
     description: "",
     maxScore: 10,
-    strictness: 'moderate',
     language: 'spanish'
   });
 

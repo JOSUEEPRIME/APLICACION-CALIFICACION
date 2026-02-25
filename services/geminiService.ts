@@ -183,15 +183,12 @@ export const gradeSubmission = async (
       
       PARÁMETROS DE CALIFICACIÓN:
       - Puntaje Máximo: ${rubric.maxScore}
-      - Exigencia: ${rubric.strictness}
       - Idioma Objetivo: ${rubric.language === 'auto' ? 'Detectar idioma del contenido' : rubric.language}
       
       INSTRUCCIONES:
       1. **OCR / Transcripción**: Lee el texto manuscrito del estudiante. Transcribe exactamente lo que está escrito.
       2. **Identificar Estudiante**: Busca un nombre en la hoja del estudiante.
       3. **Calificación**: Compara la respuesta transcrita contra la Rúbrica proporcionada (ya sea texto o archivo adjunto).
-         - Si la Exigencia es 'lenient' (Benevolente), perdona errores menores.
-         - Si la Exigencia es 'strict' (Estricta), deduce puntos por inexactitudes.
       4. **Retroalimentación**: Genera feedback constructivo.
       5. **Idioma**: Output en ${rubric.language}.
     `;

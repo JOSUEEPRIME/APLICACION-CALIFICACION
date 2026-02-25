@@ -145,33 +145,18 @@ const RubricPanel: React.FC<RubricPanelProps> = ({ config, onChange, onSave }) =
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Exigencia
+              Idioma del Examen
             </label>
             <select
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
-              value={config.strictness}
-              onChange={(e) => handleChange('strictness', e.target.value)}
+              value={config.language}
+              onChange={(e) => handleChange('language', e.target.value)}
             >
-              <option value="lenient">Benevolente</option>
-              <option value="moderate">Moderado</option>
-              <option value="strict">Estricto</option>
+              <option value="auto">Auto-detectar</option>
+              <option value="spanish">Español</option>
+              <option value="english">Inglés</option>
             </select>
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Idioma del Examen
-          </label>
-          <select
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
-            value={config.language}
-            onChange={(e) => handleChange('language', e.target.value)}
-          >
-            <option value="auto">Auto-detectar</option>
-            <option value="spanish">Español</option>
-            <option value="english">Inglés</option>
-          </select>
         </div>
 
         {/* Save Button */}

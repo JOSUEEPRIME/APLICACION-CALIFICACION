@@ -64,6 +64,5 @@ export interface RubricConfig {
   rubricFileName?: string;
 
   maxScore: number;
-  strictness: 'lenient' | 'moderate' | 'strict';
   language: 'english' | 'spanish' | 'auto';
 }
