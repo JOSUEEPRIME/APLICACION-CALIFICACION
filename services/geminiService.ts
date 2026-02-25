@@ -44,8 +44,34 @@ const rotateKey = () => {
   ai = new GoogleGenAI({ apiKey: apiKeys[currentKeyIndex] });
 };
 
-// Cache en memoria para almacenar resultados previos
+// Cache persistente para almacenar resultados previos y NO gastar recursos
 const resultCache: Map<string, GradingResult> = new Map();
+
+const CACHE_STORAGE_KEY = 'gemini_grading_cache_v2';
+
+// Cargar caché desde LocalStorage al iniciar
+try {
+  const storedCache = localStorage.getItem(CACHE_STORAGE_KEY);
+  if (storedCache) {
+    const parsed = JSON.parse(storedCache);
+    Object.keys(parsed).forEach(key => {
+      resultCache.set(key, parsed[key]);
+    });
+    console.log(`Caché recuperada con ${resultCache.size} elementos para calificar automáticamente.`);
+  }
+} catch (e) {
+  console.warn("No se pudo cargar la caché de resultados de Gemini", e);
+}
+
+// Guardar caché en LocalStorage
+const persistCache = () => {
+  try {
+    const cacheObj = Object.fromEntries(resultCache);
+    localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(cacheObj));
+  } catch (e) {
+    console.warn("No se pudo guardar la caché de resultados (posible límite de espacio)", e);
+  }
+};
 
 const getHashCode = (str: string): string => {
   let hash = 0;
@@ -142,8 +168,10 @@ export const gradeSubmission = async (
     const cacheKey = `${imageHash}::${rubricKey}`;
 
     if (resultCache.has(cacheKey)) {
-      console.log("Recuperando resultado desde caché (congruencia garantizada)");
-      return JSON.parse(JSON.stringify(resultCache.get(cacheKey)));
+      console.log("Recuperando resultado desde caché (congruencia garantizada y recursos ahorrados)");
+      const cachedResult = JSON.parse(JSON.stringify(resultCache.get(cacheKey)));
+      // Devolvemos la calificación de la caché directamente sin consumir la API
+      return cachedResult;
     }
 
     const modelId = "gemini-2.5-flash";
@@ -214,6 +242,7 @@ export const gradeSubmission = async (
     result.maxScore = rubric.maxScore;
 
     resultCache.set(cacheKey, result);
+    persistCache(); // Persistimos en localStorage para evitar reevaluar las mismas fotos más adelante
 
     return result;
 
