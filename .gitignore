@@ -39,3 +39,6 @@ dist-ssr
 
 # Context directory
 context/
+
+# Project text files
+prompt.txt
