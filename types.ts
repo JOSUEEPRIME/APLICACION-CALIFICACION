@@ -38,6 +38,7 @@ export interface StudentSubmission {
   fileName: string;
   fileData: string; // Base64
   mimeType: string;
+  pages?: { fileName: string; fileData: string; mimeType: string }[];
   status: GradingStatus;
   result?: GradingResult;
   error?: string;

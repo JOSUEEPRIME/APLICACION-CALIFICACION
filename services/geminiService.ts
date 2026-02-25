@@ -132,12 +132,12 @@ const generateContentWithRetry = async (
 };
 
 export const gradeSubmission = async (
-  base64Image: string,
-  mimeType: string,
+  pages: { fileData: string; mimeType: string }[],
   rubric: RubricConfig
 ): Promise<GradingResult> => {
   try {
-    const imageHash = getHashCode(base64Image);
+    const combinedData = pages.map(p => p.fileData).join("");
+    const imageHash = getHashCode(combinedData);
     const rubricKey = JSON.stringify(rubric);
     const cacheKey = `${imageHash}::${rubricKey}`;
 
@@ -150,12 +150,14 @@ export const gradeSubmission = async (
 
     const contentParts: any[] = [];
 
-    contentParts.push({
-      inlineData: {
-        mimeType: mimeType,
-        data: base64Image,
-      },
-    });
+    for (const page of pages) {
+      contentParts.push({
+        inlineData: {
+          mimeType: page.mimeType,
+          data: page.fileData,
+        },
+      });
+    }
 
     if (rubric.rubricFileData && rubric.rubricFileMimeType) {
       contentParts.push({
@@ -170,11 +172,11 @@ export const gradeSubmission = async (
       Eres un experto maestro de escuela primaria. Tu objetivo es calificar un examen o tarea manuscrita de un estudiante.
       
       ARCHIVOS ADJUNTOS:
-      1. El PRIMER archivo/imagen proporcionado es el TRABAJO DEL ESTUDIANTE.
-      ${rubric.rubricFileData ? "2. El SEGUNDO archivo proporcionado es la RÚBRICA OFICIAL o SOLUCIONARIO." : ""}
+      1. El/los archivo(s) inicial(es) proporcionado(s) son el TRABAJO DEL ESTUDIANTE (puede constar de varias páginas de un solo examen).
+      ${rubric.rubricFileData ? "2. El ÚLTIMO archivo proporcionado es la RÚBRICA OFICIAL o SOLUCIONARIO." : ""}
 
       CONTEXTO:
-      - La imagen del estudiante contiene texto manuscrito.
+      - Las imágenes del estudiante contienen texto manuscrito y forman parte de una sola entrega.
       - La letra puede ser desordenada, contener errores ortográficos o ser difícil de leer.
       
       RÚBRICA Y SOLUCIÓN (Instrucciones):

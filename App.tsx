@@ -145,21 +145,31 @@ export default function App() {
     window.history.pushState({}, '', `#course/${selectedCourse?.id}/subject/${selectedSubject?.id}/exam/${exam.id}`);
   };
 
-  const handleUpload = useCallback(async (files: { name: string; data: string; mimeType: string }[]) => {
+  const handleUpload = useCallback(async (fileGroups: { name: string; data: string; mimeType: string }[][]) => {
     if (!selectedCourse || !selectedSubject || !selectedExam) return;
 
-    for (const f of files) {
+    for (const group of fileGroups) {
+      if (group.length === 0) continue;
+
+      const firstFile = group[0];
+      const pages = group.length > 1 ? group.map(f => ({
+        fileName: f.name,
+        fileData: f.data,
+        mimeType: f.mimeType
+      })) : undefined;
+
       try {
         await createSubmission({
-          fileName: f.name,
-          mimeType: f.mimeType,
+          fileName: firstFile.name,
+          mimeType: firstFile.mimeType,
+          pages: pages,
           courseId: selectedCourse.id,
           subjectId: selectedSubject.id,
           examId: selectedExam.id
-        }, f.data);
+        }, firstFile.data);
       } catch (error) {
         console.error("Upload failed", error);
-        alert(`Error subiendo ${f.name}`);
+        alert(`Error subiendo ${firstFile.name}`);
       }
     }
   }, [selectedCourse, selectedSubject, selectedExam]);
@@ -186,7 +196,9 @@ export default function App() {
     for (const sub of pendingSubmissions) {
       try {
         await updateSubmissionResult(sub.id, null, GradingStatus.PROCESSING);
-        const result = await gradeSubmission(sub.fileData, sub.mimeType, rubric);
+
+        const payloadPages = sub.pages ? sub.pages : [{ fileData: sub.fileData, mimeType: sub.mimeType }];
+        const result = await gradeSubmission(payloadPages, rubric);
         const matchedId = findBestStudentMatch(result.studentName, students);
 
         if (matchedId) {
@@ -334,12 +346,32 @@ export default function App() {
       <div className="min-h-screen bg-light">
         <div className="bg-gradient-to-r from-primary to-primary/80 h-48 absolute top-0 w-full z-0"></div>
         <div className="relative z-10 pt-8">
-          <ExamSelector
-            subjectId={selectedSubject.id}
-            studentCount={students.length}
-            onSelectExam={handleSelectExam}
-            onBack={handleBackToSubjects}
-          />
+          {showStudentManager ? (
+            <StudentManager
+              isOpen={true}
+              courseId={selectedCourse.id}
+              onClose={() => setShowStudentManager(false)}
+            />
+          ) : (
+            <ExamSelector
+              subjectId={selectedSubject.id}
+              studentCount={students.length}
+              onSelectExam={handleSelectExam}
+              onBack={handleBackToSubjects}
+            />
+          )}
+
+          {!showStudentManager && (
+            <div className="fixed bottom-8 right-8 z-40">
+              <button
+                onClick={() => setShowStudentManager(true)}
+                className="flex items-center gap-2 bg-gray-900 hover:bg-black text-white px-6 py-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-300 font-medium group"
+              >
+                <Users size={20} className="group-hover:text-primary transition-colors" />
+                <span>Gestionar Estudiantes</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

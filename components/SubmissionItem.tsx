@@ -75,8 +75,13 @@ const SubmissionItem: React.FC<SubmissionItemProps> = ({
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">{submission.fileName}</span>
+            {submission.pages && submission.pages.length > 0 && (
+              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                {submission.pages.length} págs
+              </span>
+            )}
           </div>
         </div>
       </div>

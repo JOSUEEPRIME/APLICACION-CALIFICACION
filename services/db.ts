@@ -41,7 +41,7 @@ export interface DBStudent extends Omit<Student, 'id'> {
 
 // Crear nueva entrega (Ahora guarda el base64 directamente en Firestore)
 // courseId, subjectId, and examId are now required
-export const createSubmission = async (submission: { fileName: string; mimeType: string, courseId: string, subjectId: string, examId: string }, fileData: string) => {
+export const createSubmission = async (submission: { fileName: string; mimeType: string, courseId: string, subjectId: string, examId: string, pages?: { fileName: string; fileData: string; mimeType: string }[] }, fileData: string) => {
     try {
         // IMPORTANTE: Guardamos el base64 directamente en el documento. 
         // Esto es lo que el usuario pidió ("solo usamos firestore").
@@ -51,6 +51,7 @@ export const createSubmission = async (submission: { fileName: string; mimeType:
             fileName: submission.fileName,
             mimeType: submission.mimeType,
             fileData: fileData, // <--- Base64 guardado aquí
+            ...(submission.pages ? { pages: submission.pages } : {}), // <--- Array de páginas extra
             status: GradingStatus.PENDING,
             courseId: submission.courseId,
             subjectId: submission.subjectId,
@@ -158,6 +159,7 @@ export const subscribeToSubmissions = (callback: (data: StudentSubmission[]) => 
                 fileName: data.fileName,
                 fileData: data.fileData, // Mapeamos directo del campo del documento
                 mimeType: data.mimeType,
+                pages: data.pages, // <--- Mapeamos el array de páginas
                 status: data.status,
                 result: data.result,
                 error: data.error,

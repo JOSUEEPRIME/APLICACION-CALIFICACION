@@ -42,19 +42,34 @@ const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose }) => {
         }
     };
 
+    // LÓGICA NUEVA: Determinar qué imágenes renderizar (Múltiples o Única)
+    const imagesToRender = submission.pages && submission.pages.length > 0
+        ? submission.pages
+        : [{ fileData: submission.fileData, mimeType: submission.mimeType, fileName: submission.fileName }];
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
             <div
                 className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Left: Image Viewer */}
-                <div className="w-1/2 bg-gray-900 flex items-center justify-center p-4 overflow-auto">
-                    <img
-                        src={`data:${submission.mimeType};base64,${submission.fileData}`}
-                        alt="Trabajo del Estudiante"
-                        className="max-w-full max-h-full object-contain shadow-lg"
-                    />
+                {/* PANEL IZQUIERDO ACTUALIZADO: Visor de Múltiples Imágenes */}
+                <div className="w-1/2 bg-gray-900 flex flex-col items-center justify-start p-4 overflow-y-auto gap-6 custom-scrollbar">
+                    {imagesToRender.map((img, idx) => (
+                        <div key={idx} className="relative w-full flex-shrink-0 flex flex-col items-center">
+                            <img
+                                src={`data:${img.mimeType};base64,${img.fileData}`}
+                                alt={`Página ${idx + 1}`}
+                                className="max-w-full h-auto object-contain shadow-lg rounded-sm"
+                            />
+                            {/* Insignia indicadora de número de página */}
+                            {imagesToRender.length > 1 && (
+                                <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md font-bold backdrop-blur-sm border border-white/10">
+                                    Pág {idx + 1} de {imagesToRender.length}
+                                </div>
+                            )}
+                        </div>
+                    ))}
                 </div>
 
                 {/* Right: Analysis */}
