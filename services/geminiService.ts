@@ -216,10 +216,10 @@ export const gradeSubmission = async (
       - Idioma Objetivo: ${rubric.language === 'auto' ? 'Detectar idioma del contenido' : rubric.language}
       
       INSTRUCCIONES:
-      1. **OCR / Transcripción**: Lee el texto manuscrito del estudiante. Transcribe exactamente lo que está escrito.
+      1. **OCR / Transcripción**: Lee el texto manuscrito del estudiante. Transcribe exactamente lo que está escrito. Para preguntas de opción múltiple, identifica y especifica explícitamente qué opción (A, B, C, etc.) ha marcado, encerrado, tachado o subrayado el estudiante como su respuesta.
       2. **Identificar Estudiante**: Busca un nombre en la hoja del estudiante.
-      3. **Calificación**: Compara la respuesta transcrita contra la Rúbrica proporcionada (ya sea texto o archivo adjunto).
-      4. **Retroalimentación**: Genera feedback constructivo.
+      3. **Calificación**: Compara la respuesta transcrita contra la Rúbrica proporcionada (ya sea texto o archivo adjunto). Evalúa correctamente todos los tipos de preguntas (desarrollo, opción múltiple, verdadero/falso).
+      4. **Retroalimentación**: Genera feedback constructivo, indicando aciertos y errores.
       5. **Idioma**: Output en ${rubric.language}.
     `;
 
