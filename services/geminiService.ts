@@ -216,9 +216,11 @@ export const gradeSubmission = async (
       - Idioma Objetivo: ${rubric.language === 'auto' ? 'Detectar idioma del contenido' : rubric.language}
       
       INSTRUCCIONES:
-      1. **OCR / Transcripción**: Lee el texto manuscrito del estudiante. Transcribe exactamente lo que está escrito. Para preguntas de opción múltiple, identifica y especifica explícitamente qué opción (A, B, C, etc.) ha marcado, encerrado, tachado o subrayado el estudiante como su respuesta.
+      1. **OCR / Transcripción**: Lee el texto manuscrito del estudiante. Transcribe exactamente lo que está escrito.
       2. **Identificar Estudiante**: Busca un nombre en la hoja del estudiante.
-      3. **Calificación**: Compara la respuesta transcrita contra la Rúbrica proporcionada (ya sea texto o archivo adjunto). Evalúa correctamente todos los tipos de preguntas (desarrollo, opción múltiple, verdadero/falso).
+      3. **Calificación**: Compara la respuesta transcrita contra la Rúbrica proporcionada. 
+         - **REGLA CRÍTICA PARA OPCIONES MÚLTIPLES**: ¡NO asumas que la respuesta es correcta solo porque el texto de la opción correcta está impreso en el examen! Para otorgar puntos en una pregunta de opción múltiple, DEBES verificar visualmente que el estudiante haya hecho una MARCA EXPLÍCITA (por ejemplo: un círculo encerrando el literal A, B, C, una "X" sobre la letra, un subrayado o un visto) específicamente en la opción correcta. Si no hay ninguna marca que indique la elección del estudiante, o si la marca está en otra opción, la respuesta es INCORRECTA.
+         - Evalúa el resto de preguntas (desarrollo, verdadero/falso) según la rúbrica.
       4. **Retroalimentación**: Genera feedback constructivo, indicando aciertos y errores.
       5. **Idioma**: Output en ${rubric.language}.
     `;
