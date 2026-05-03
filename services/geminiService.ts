@@ -174,7 +174,7 @@ export const gradeSubmission = async (
       return cachedResult;
     }
 
-    const modelId = "gemini-2.5-flash";
+    const modelId = "gemini-3-flash-preview";
 
     const contentParts: any[] = [];
 
