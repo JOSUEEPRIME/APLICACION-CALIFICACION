@@ -75,11 +75,24 @@ const SubmissionItem: React.FC<SubmissionItemProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-gray-400">{submission.fileName}</span>
             {submission.pages && submission.pages.length > 0 && (
               <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
                 {submission.pages.length} págs
+              </span>
+            )}
+            {submission.gradingDurationMs && (
+              <span className="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.828a1 1 0 101.415-1.414L11 9.586V6z" clipRule="evenodd" />
+                </svg>
+                {submission.gradingDurationMs < 1000
+                  ? `${submission.gradingDurationMs}ms`
+                  : submission.gradingDurationMs < 60000
+                    ? `${(submission.gradingDurationMs / 1000).toFixed(1)}s`
+                    : `${Math.floor(submission.gradingDurationMs / 60000)}m ${Math.round((submission.gradingDurationMs % 60000) / 1000)}s`
+                }
               </span>
             )}
           </div>

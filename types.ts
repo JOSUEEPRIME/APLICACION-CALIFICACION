@@ -46,6 +46,7 @@ export interface StudentSubmission {
   subjectId: string; // Nueva relación
   examId: string; // <--- Linked to Exam
   matchedStudentId?: string;
+  gradingDurationMs?: number; // Tiempo en milisegundos que tardó la calificación IA
 }
 
 export interface GradingResult {

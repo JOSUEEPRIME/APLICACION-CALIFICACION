@@ -110,7 +110,7 @@ const recalculateStudentStats = async (studentId: string) => {
 };
 
 // Actualizar resultado de calificación
-export const updateSubmissionResult = async (id: string, result: any, status: GradingStatus, matchedStudentId?: string) => {
+export const updateSubmissionResult = async (id: string, result: any, status: GradingStatus, matchedStudentId?: string, gradingDurationMs?: number) => {
     const docRef = doc(db, SUBMISSIONS_COLLECTION, id);
     const updateData: any = {
         result: result,
@@ -119,6 +119,9 @@ export const updateSubmissionResult = async (id: string, result: any, status: Gr
     };
     if (matchedStudentId !== undefined) {
         updateData.matchedStudentId = matchedStudentId;
+    }
+    if (gradingDurationMs !== undefined) {
+        updateData.gradingDurationMs = gradingDurationMs;
     }
     await updateDoc(docRef, updateData);
 
@@ -166,7 +169,8 @@ export const subscribeToSubmissions = (callback: (data: StudentSubmission[]) => 
                 courseId: data.courseId,
                 subjectId: data.subjectId,
                 examId: data.examId,
-                matchedStudentId: data.matchedStudentId
+                matchedStudentId: data.matchedStudentId,
+                gradingDurationMs: data.gradingDurationMs
             } as StudentSubmission;
         });
         callback(submissions);

@@ -197,8 +197,16 @@ export default function App() {
       try {
         await updateSubmissionResult(sub.id, null, GradingStatus.PROCESSING);
 
+        // ⏱️ Iniciar medición de tiempo de calificación
+        const gradingStartTime = performance.now();
+
         const payloadPages = sub.pages ? sub.pages : [{ fileData: sub.fileData, mimeType: sub.mimeType }];
         const result = await gradeSubmission(payloadPages, rubric);
+
+        // ⏱️ Calcular duración total del proceso de calificación
+        const gradingEndTime = performance.now();
+        const gradingDurationMs = Math.round(gradingEndTime - gradingStartTime);
+
         const matchedId = findBestStudentMatch(result.studentName, students);
 
         if (matchedId) {
@@ -208,7 +216,7 @@ export default function App() {
           }
         }
 
-        await updateSubmissionResult(sub.id, result, GradingStatus.COMPLETED, matchedId);
+        await updateSubmissionResult(sub.id, result, GradingStatus.COMPLETED, matchedId, gradingDurationMs);
 
       } catch (error) {
         console.error(`Error grading ${sub.fileName}:`, error);
@@ -259,15 +267,16 @@ export default function App() {
   };
 
   const handleExport = () => {
-    const headers = ["ID", "Nombre de Archivo", "Estudiante", "Puntaje", "Puntaje Max", "Retroalimentación", "Transcripción"];
+    const headers = ["ID", "Nombre de Archivo", "Estudiante", "Puntaje", "Puntaje Max", "Tiempo Calificación (s)", "Retroalimentación", "Transcripción"];
     const rows = submissions.map(s => [
       s.id,
       s.fileName,
       s.result?.studentName || "N/A",
       s.result?.score || 0,
       s.result?.maxScore || rubric.maxScore,
+      s.gradingDurationMs ? (s.gradingDurationMs / 1000).toFixed(1) : "N/A",
       `"${s.result?.feedback?.replace(/"/g, '""') || ''}"`,
-      `"${s.result?.transcription?.replace(/"/g, '""') || ''}"`
+      `"${s.result?.transcription?.replace(/"/g, '""') || ''}"`,
     ]);
 
     const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");

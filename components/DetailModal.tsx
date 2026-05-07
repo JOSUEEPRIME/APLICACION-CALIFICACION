@@ -7,6 +7,16 @@ interface DetailModalProps {
     onClose: () => void;
 }
 
+// Formatea milisegundos a texto legible (ej: "4.2 segundos" o "1m 23s")
+const formatGradingDuration = (ms: number): string => {
+    if (ms < 1000) return `${ms} ms`;
+    const totalSeconds = ms / 1000;
+    if (totalSeconds < 60) return `${totalSeconds.toFixed(1)} segundos`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.round(totalSeconds % 60);
+    return `${minutes}m ${seconds}s`;
+};
+
 const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState('');
@@ -158,6 +168,23 @@ const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose }) => {
                             </div>
                         ) : (
                             <>
+                                {/* ⏱️ Tiempo de Calificación */}
+                                {submission.gradingDurationMs && (
+                                    <div className="flex items-center gap-3 bg-gradient-to-r from-violet-50 to-purple-50 p-4 rounded-lg border border-violet-200/60">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-md shadow-violet-200 flex-shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.828a1 1 0 101.415-1.414L11 9.586V6z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-violet-600 uppercase tracking-wider">Tiempo de Calificación IA</p>
+                                            <p className="text-lg font-bold text-gray-900">
+                                                {formatGradingDuration(submission.gradingDurationMs)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Transcription Section */}
                                 <div className="bg-light p-4 rounded-lg border border-gray-200">
                                     <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1">
